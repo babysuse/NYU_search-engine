@@ -2,10 +2,7 @@
 #define HTTP_UTILITY_H
 #include "tinyxml2.h"
 
-#include <tidy/tidy.h>
-#include <tidy/buffio.h>
 #include <tidy/tidyenum.h>
-#include <curl/curl.h>
 #include <string>
 
 class HTTPUtility {

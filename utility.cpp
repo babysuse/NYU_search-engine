@@ -1,5 +1,8 @@
 #include "utility.h"
 
+#include <tidy/tidy.h>
+#include <tidy/buffio.h>
+#include <curl/curl.h>
 #include <cstdlib>
 #include <iostream>
 #include <fstream>
@@ -39,7 +42,12 @@ string HTTPUtility::convertHTML(const char *html, TidyOptionId tidyOptId) {
     tidyCleanAndRepair(tdoc);
     tidySaveBuffer(tdoc, &tidyBuffer);
 
-    string result ((char *) tidyBuffer.bp);
+    string result;
+    if (tidyBuffer.size) {
+        result.append((char *) tidyBuffer.bp);
+    } else {
+        cout << tidyErrbuf.bp << endl;
+    }
     tidyBufFree(&tidyBuffer);
     tidyRelease(tdoc);
     return result;
