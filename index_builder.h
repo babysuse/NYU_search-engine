@@ -41,7 +41,7 @@ class IndexBuilder {
         size_t tempFile;
         const std::string RESULT = "index.out";
         std::map<std::string, std::vector<posting> > counter;
-        DataCompress compress;
+        std::string currLex;
 
         void readFile(std::ifstream&, std::queue<postings_list>&);
         void heapPop(std::priority_queue<htype, std::vector<htype>, HeapGreater>&,

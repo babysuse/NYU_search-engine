@@ -136,9 +136,10 @@ void IndexBuilder::writeFile(postings_list& plist) {
         idList.push_back(p.docid);
         freqList.push_back(p.freq);
     }
-    auto lexCompressed = compress.compressText(plist.lex);
-    auto idChunks = compress.toVarBytes(idList);
-    auto freqChunks = compress.toVarBytes(freqList);
+    string lexCompressed = DataCompress::compressText(currLex, plist.lex);
+    currLex = plist.lex;
+    string idChunks = DataCompress::toVarBytes(idList, true);
+    string freqChunks = DataCompress::toVarBytes(freqList);
     file << lexCompressed << " " << idChunks << " " << freqChunks << endl;
     file.close();
 }
