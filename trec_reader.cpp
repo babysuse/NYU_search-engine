@@ -2,10 +2,13 @@
 #include "tinyxml2.h"
 #include <cstddef>
 #include <iostream>
+#include <iterator>
 #include <regex>
+#include <sstream>
+#include <algorithm>
 
-using namespace std;
 using namespace tinyxml2;
+using std::string;
 
 TRECReader::TRECReader(string filename): nextDoc( 5 ) {
     trec.open(filename);
@@ -21,8 +24,8 @@ TrecDoc *TRECReader::getDoc() {
 
     memset(readbuf, 0, size);
     trec.read(readbuf, size);
-    int start = nextDoc;
-    while (trec && (nextDoc = buffer.find("<DOC>", start)) == string::npos) {
+    int nextDoc;
+    while (trec && (nextDoc = buffer.find("<DOC>", 5)) == string::npos) {
         buffer.append(readbuf, trec.gcount());
         trec.read(readbuf, size);
     }
@@ -42,13 +45,20 @@ TrecDoc *TRECReader::getDoc() {
 
 TrecDoc *TRECReader::parseDoc(string content) {
     TrecDoc *trecdoc = new TrecDoc;
+    std::smatch matchID, matchText;
     string patID = R"(<DOCNO>([\s\S]*?)</DOCNO>)";
-    smatch matchID, matchText;
-    regex_search(content, matchID, regex(patID));
+    regex_search(content, matchID, std::regex(patID));
+    trecdoc->docid += matchID[1];
 
     string patText = R"(<TEXT>([\s\S]*?)</TEXT>)";
-    trecdoc->docid += matchID[1];
-    regex_search(content, matchText, regex(patText));
+    regex_search(content, matchText, std::regex(patText));
     trecdoc->text += matchText[1];
+
+    int i = trecdoc->text.find("http");
+    if (i != string::npos) {
+        int j = std::distance(trecdoc->text.begin(), find_if(trecdoc->text.begin() + i, trecdoc->text.end(), isspace));
+        trecdoc->url += trecdoc->text.substr(i, j - i);
+        trecdoc->text.erase(i, j + 1);
+    }
     return trecdoc;
 }

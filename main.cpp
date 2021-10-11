@@ -1,15 +1,23 @@
-#include <iostream>
+#include "tinyxml2.h"
 #include "utility.h"
+#include "trec_reader.h"
+#include "index_builder.h"
+#include <iostream>
+#include <fstream>
+#include <cstring>
 
 using namespace std;
 using namespace tinyxml2;
 
 int main(int argc, char **argv) {
-    HTTPUtility util;
-    string url ("http://help.websiteos.com/websiteos/example_of_a_simple_html_page.htm");
-    string html = util.sendRequest(url);
-    string xml = util.convertHTML(html.c_str());
-    XMLDocument dom;
-    dom.Parse(xml.c_str());
-    util.extractContent(&dom, 0);
+    TRECReader trec ("dataset/msmarco-docs.trec");
+    IndexBuilder builder;
+    int i = 0;
+    //*
+    for (TrecDoc *trecdoc = trec.getDoc(); i < 10; trecdoc = trec.getDoc(), ++i) {
+        builder.buildPList(trecdoc->docid, trecdoc->text);
+        delete trecdoc;
+    }
+    // */
+    builder.mergeFile();
 }

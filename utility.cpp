@@ -3,6 +3,7 @@
 #include <tidy/tidy.h>
 #include <tidy/buffio.h>
 #include <curl/curl.h>
+#include <sys/resource.h>
 #include <cstdlib>
 #include <iostream>
 #include <fstream>
@@ -76,6 +77,18 @@ void HTTPUtility::extractContent(XMLNode* node, int layer) {
         }
         extractContent(child, layer + 1);
     }
+}
+
+size_t HTTPUtility::getMemUsage() {
+    struct rusage monitor = {};
+    getrusage(RUSAGE_SELF, &monitor);
+    
+    size_t size = 0;
+    getrusage(RUSAGE_SELF, &monitor);
+    if (monitor.ru_maxrss != size) {
+        size = monitor.ru_maxrss;
+    }
+    return size;
 }
 
 size_t HTTPUtility::writeBuffer(char *data, size_t size, size_t nmemb, std::string *buffer) {

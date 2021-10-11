@@ -7,9 +7,10 @@
 
 class HTTPUtility {
     public:
-        std::string sendRequest(const std::string);
-        std::string convertHTML(const char *, TidyOptionId tidyOptId = TidyXmlOut);
-        void extractContent(tinyxml2::XMLNode *, int);
+        static std::string sendRequest(const std::string);
+        static std::string convertHTML(const char *, TidyOptionId tidyOptId = TidyXmlOut);
+        static void extractContent(tinyxml2::XMLNode *, int);
+        static size_t getMemUsage();
     private:
         static size_t writeBuffer(char *data, size_t size, size_t nmemb, std::string *buffer);
 };

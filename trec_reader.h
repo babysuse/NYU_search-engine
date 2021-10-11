@@ -6,6 +6,7 @@
 
 typedef struct {
     std::string docid;
+    std::string url;
     std::string text;
 } TrecDoc ;
 
