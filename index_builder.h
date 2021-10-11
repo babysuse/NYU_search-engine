@@ -4,6 +4,7 @@
 #include "data_compress.h"
 
 #include <iostream>
+#include <climits>
 #include <fstream>
 #include <queue>
 #include <list>
@@ -30,7 +31,7 @@ class HeapGreater {
 
 class IndexBuilder {
     public:
-        explicit IndexBuilder(size_t = -1);
+        explicit IndexBuilder(size_t = UINT_MAX);
         void buildPList(std::string, std::string);
         void writeTempFile();
         void mergeFile();
