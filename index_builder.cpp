@@ -98,7 +98,7 @@ void IndexBuilder::readFile(std::ifstream& file, std::queue<postings_list>& buff
         buff.push( (postings_list){ "", std::list<posting>() });
         buff.back().lex += readbuf.substr(0, pos);
         size_t prev = pos;
-        unsigned short docid, freq;
+        unsigned int docid, freq;
         while ((pos = readbuf.find(":", prev + 1)) != string::npos) {
             std::sscanf(readbuf.substr(prev + 1, pos - prev - 1).c_str(), "(%hu,%hu)", &docid, &freq);
             buff.back().postings.push_back( (posting){ docid, freq } );
@@ -130,10 +130,15 @@ void IndexBuilder::heapPop(std::priority_queue<htype, std::vector<htype>, HeapGr
 // helper of IndexBuilder::mergeFile()
 void IndexBuilder::writeFile(postings_list& plist) {
     std::ofstream file (RESULT, std::ios_base::app);
-    file << plist.lex;
+    std::list<unsigned int> idList;
+    std::list<unsigned int> freqList;
     for (posting p : plist.postings) {
-        file << ":" << "(" << p.docid << ":" << p.freq << ")";
+        idList.push_back(p.docid);
+        freqList.push_back(p.freq);
     }
-    file << endl;
+    auto lexCompressed = compress.compressText(plist.lex);
+    auto idChunks = compress.toVarBytes(idList);
+    auto freqChunks = compress.toVarBytes(freqList);
+    file << lexCompressed << " " << idChunks << " " << freqChunks << endl;
     file.close();
 }

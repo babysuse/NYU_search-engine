@@ -1,6 +1,8 @@
 #ifndef INDEX_BUILDER_H
 #define INDEX_BUILDER_H
 
+#include "data_compress.h"
+
 #include <iostream>
 #include <fstream>
 #include <queue>
@@ -8,8 +10,8 @@
 #include <map>
 
 typedef struct {
-    unsigned short docid;
-    unsigned short freq;
+    unsigned int docid;
+    unsigned int freq;
 } posting;
 
 typedef struct {
@@ -33,11 +35,12 @@ class IndexBuilder {
         void writeTempFile();
         void mergeFile();
     private:
-        unsigned short currId;
+        unsigned int currId;
         size_t maxmem;
         size_t tempFile;
         const std::string RESULT = "index.out";
         std::map<std::string, std::vector<posting> > counter;
+        DataCompress compress;
 
         void readFile(std::ifstream&, std::queue<postings_list>&);
         void heapPop(std::priority_queue<htype, std::vector<htype>, HeapGreater>&,
