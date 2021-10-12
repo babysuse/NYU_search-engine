@@ -12,7 +12,7 @@ using std::cout;
 using std::endl;
 
 IndexBuilder::IndexBuilder(size_t mem, bool compressing):
-    currId( 0 ), size( 0 ), maxSize( mem / sizeof(posting) ), tempFile( 0 ), compressed( compressing ) {}
+    currId( 0 ), size( 0 ), maxSize( mem / sizeof(posting) ), tempFile( 0 ), compressed( compressing ), resultId( 0 ) {}
 
 void IndexBuilder::buildPList(string docNo, string docUrl, string docStr) {
     // assign docID
@@ -142,7 +142,8 @@ void IndexBuilder::heapPop(std::priority_queue<htype, std::vector<htype>, HeapGr
 
 // helper of IndexBuilder::mergeFile()
 void IndexBuilder::writeFile(postings_list& plist) {
-    std::ofstream file (RESULT, std::ios_base::app);
+    string fname = "index-" + std::to_string(resultId) + ".out";
+    std::ofstream file (fname, std::ios_base::app);
     std::list<unsigned int> idList;
     std::list<unsigned int> freqList;
     for (posting p : plist.postings) {
@@ -150,6 +151,7 @@ void IndexBuilder::writeFile(postings_list& plist) {
         freqList.push_back(p.freq);
     }
 
+    size_t fpos = file.tellp();
     if (compressed) {
         string lexCompressed = DataCompress::compressText(currLex, plist.lex);
         currLex = plist.lex;
@@ -165,5 +167,19 @@ void IndexBuilder::writeFile(postings_list& plist) {
             file << freq << ",";
         file << endl;
     }
+    indexmeta[plist.lex] = {
+        resultId,
+        fpos,
+        (size_t)file.tellp() - fpos,
+        *idList.begin(),
+        *idList.rbegin(),
+        idList.size()
+    };
     file.close();
+}
+
+ListMeta IndexBuilder::getInfo(string lexicon) {
+    if (indexmeta.find(lexicon) != indexmeta.end())
+        return indexmeta[lexicon];
+    return {};
 }

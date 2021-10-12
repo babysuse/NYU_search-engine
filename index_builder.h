@@ -29,21 +29,32 @@ class HeapGreater {
         }
 };
 
+typedef struct {
+    unsigned char fileID;   // which file
+    size_t offset;          // start position of the postings_list in the file
+    size_t blocksize;       // block size of the postings_list
+    size_t startdoc;        // first docid of the postings_list
+    size_t enddoc;          // last docid of the postings_list
+    size_t numOfDoc;
+} ListMeta;
+
 class IndexBuilder {
     public:
         IndexBuilder(size_t = 32'000, bool = true);
         void buildPList(std::string, std::string, std::string);
         void writeTempFile();
         void mergeFile();
+        ListMeta getInfo(std::string);
     private:
         unsigned int currId;
         size_t size;
         size_t maxSize;
         size_t tempFile;
-        const std::string RESULT = "index.out";
         bool compressed;
+        unsigned char resultId;
         std::map<std::string, std::vector<posting> > counter;
         std::string currLex;
+        std::map<std::string, ListMeta> indexmeta;
 
         void readTempFile(std::ifstream&, std::queue<postings_list>&);
         void heapPop(std::priority_queue<htype, std::vector<htype>, HeapGreater>&,
