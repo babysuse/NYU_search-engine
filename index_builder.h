@@ -41,12 +41,11 @@ typedef struct {
 class IndexBuilder {
     public:
         IndexBuilder(size_t = 32'000, bool = true);
-        void buildPList(std::string, std::string, std::string);
+        size_t buildPList(unsigned short, std::string);
         void writeTempFile();
         void mergeFile();
         ListMeta getInfo(std::string);
     private:
-        unsigned int currId;
         size_t size;
         size_t maxSize;
         size_t tempFile;

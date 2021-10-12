@@ -12,22 +12,18 @@ using std::cout;
 using std::endl;
 
 IndexBuilder::IndexBuilder(size_t mem, bool compressing):
-    currId( 0 ), size( 0 ), maxSize( mem / sizeof(posting) ), tempFile( 0 ), compressed( compressing ), resultId( 0 ) {}
+    size( 0 ), maxSize( mem / sizeof(posting) ), tempFile( 0 ), compressed( compressing ), resultId( 0 ) {}
 
-void IndexBuilder::buildPList(string docNo, string docUrl, string docStr) {
-    // assign docID
-    std::fstream file ("DOCNO-ID", std::ios_base::app);
-    file << currId << ":" << docNo << ":" << docUrl << std::endl;
-    file.close();
-
+size_t IndexBuilder::buildPList(unsigned short docid, string docStr) {
+    size_t numOfTerm = 0;
     // parse doc
     for (string::iterator curr = find_if(docStr.begin(), docStr.end(), isalnum), end = std::find_if_not(curr, docStr.end(), isalnum);
             curr != docStr.end();
-            ++size, curr = find_if(end, docStr.end(), isalnum), end = std::find_if_not(curr, docStr.end(), isalnum)) {
+            ++size, ++numOfTerm, curr = find_if(end, docStr.end(), isalnum), end = std::find_if_not(curr, docStr.end(), isalnum)) {
         string token (curr, end);
         std::transform(token.begin(), token.end(), token.begin(), ::tolower);
-        if (counter.find(token) == counter.end() || counter[token].back().docid != currId)
-            counter[token].push_back( (posting){ currId, 1 } );
+        if (counter.find(token) == counter.end() || counter[token].back().docid != docid)
+            counter[token].push_back( (posting){ docid, 1 } );
         else
             counter[token].back().freq += 1;
         // write temp file to release memory
@@ -36,7 +32,7 @@ void IndexBuilder::buildPList(string docNo, string docUrl, string docStr) {
             size = 0;
         }
     }
-    currId += 1;
+    return numOfTerm;
 }
 
 void IndexBuilder::writeTempFile() {
