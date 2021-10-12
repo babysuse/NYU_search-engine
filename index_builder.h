@@ -31,19 +31,21 @@ class HeapGreater {
 
 class IndexBuilder {
     public:
-        explicit IndexBuilder(size_t = UINT_MAX);
-        void buildPList(std::string, std::string);
+        IndexBuilder(size_t = 32'000, bool = true);
+        void buildPList(std::string, std::string, std::string);
         void writeTempFile();
         void mergeFile();
     private:
         unsigned int currId;
-        size_t maxmem;
+        size_t size;
+        size_t maxSize;
         size_t tempFile;
         const std::string RESULT = "index.out";
+        bool compressed;
         std::map<std::string, std::vector<posting> > counter;
         std::string currLex;
 
-        void readFile(std::ifstream&, std::queue<postings_list>&);
+        void readTempFile(std::ifstream&, std::queue<postings_list>&);
         void heapPop(std::priority_queue<htype, std::vector<htype>, HeapGreater>&,
                 int,
                 std::ifstream&,

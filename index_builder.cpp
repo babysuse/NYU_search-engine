@@ -11,25 +11,30 @@ using std::string;
 using std::cout;
 using std::endl;
 
-IndexBuilder::IndexBuilder(size_t mem): currId( 0 ), maxmem( mem ), tempFile( 0 ) {}
+IndexBuilder::IndexBuilder(size_t mem, bool compressing):
+    currId( 0 ), size( 0 ), maxSize( mem / sizeof(posting) ), tempFile( 0 ), compressed( compressing ) {}
 
-void IndexBuilder::buildPList(string docNo, string docStr) {
+void IndexBuilder::buildPList(string docNo, string docUrl, string docStr) {
+    // assign docID
     std::fstream file ("DOCNO-ID", std::ios_base::app);
-    file << docNo << ":" << currId << std::endl;
+    file << currId << ":" << docNo << ":" << docUrl << std::endl;
     file.close();
 
+    // parse doc
     for (string::iterator curr = find_if(docStr.begin(), docStr.end(), isalnum), end = std::find_if_not(curr, docStr.end(), isalnum);
             curr != docStr.end();
-            curr = find_if(end, docStr.end(), isalnum), end = std::find_if_not(curr, docStr.end(), isalnum)) {
+            ++size, curr = find_if(end, docStr.end(), isalnum), end = std::find_if_not(curr, docStr.end(), isalnum)) {
         string token (curr, end);
         std::transform(token.begin(), token.end(), token.begin(), ::tolower);
         if (counter.find(token) == counter.end() || counter[token].back().docid != currId)
             counter[token].push_back( (posting){ currId, 1 } );
         else
             counter[token].back().freq += 1;
-    }
-    if (currId % 2) {
-        writeTempFile();
+        // write temp file to release memory
+        if (size >= maxSize) {
+            writeTempFile();
+            size = 0;
+        }
     }
     currId += 1;
 }
@@ -53,30 +58,38 @@ void IndexBuilder::writeTempFile() {
 }
 
 void IndexBuilder::mergeFile() {
-    tempFile = 5;
     std::ifstream infiles[tempFile];
     std::queue<postings_list> inbuffs[tempFile];
     std::priority_queue<htype, std::vector<htype>, HeapGreater> minheap;
     // initialize input buffers and the heap
     for (int i = 0; i < tempFile; ++i) {
         infiles[i].open("temp/temp" + std::to_string(i));
-        readFile(infiles[i], inbuffs[i]);
+        readTempFile(infiles[i], inbuffs[i]);
         minheap.push(std::make_pair(i, inbuffs[i].front()));
         inbuffs[i].pop();
     }
     // merge files
     while (!minheap.empty()) {
+        // htype: {buff_id, postings_list}
         htype next = minheap.top();
         int i = next.first;
         heapPop(minheap, i, infiles[i], inbuffs[i]);
 
-        cout << "merging plists" << endl;
         // merge postings_lists that share the same lexicon
         while (!minheap.empty() && next.second.lex.compare( minheap.top().second.lex ) == 0) {
             htype top = minheap.top();
             next.second.postings.merge(top.second.postings, [](posting p1, posting p2) -> bool {
                         return p1.docid < p2.docid;
                     });
+            // merge postings that share that same docid
+            for (auto it = next.second.postings.begin(); std::next(it) != next.second.postings.end(); ++it) {
+                auto itn = std::next(it);
+                while (itn != next.second.postings.end() && it->docid == itn->docid) {
+                    it->freq += itn->freq;
+                    next.second.postings.erase(itn);
+                    itn = std::next(it);
+                }
+            }
             int j = top.first;
             heapPop(minheap, j, infiles[j], inbuffs[j]);
         }
@@ -88,7 +101,7 @@ void IndexBuilder::mergeFile() {
 }
 
 // helper of IndexBuilder::mergeFile()
-void IndexBuilder::readFile(std::ifstream& file, std::queue<postings_list>& buff) {
+void IndexBuilder::readTempFile(std::ifstream& file, std::queue<postings_list>& buff) {
     const int line = 20;
     string readbuf;
     for (int i = 0; i < line && file; ++i) {
@@ -100,11 +113,11 @@ void IndexBuilder::readFile(std::ifstream& file, std::queue<postings_list>& buff
         size_t prev = pos;
         unsigned int docid, freq;
         while ((pos = readbuf.find(":", prev + 1)) != string::npos) {
-            std::sscanf(readbuf.substr(prev + 1, pos - prev - 1).c_str(), "(%hu,%hu)", &docid, &freq);
+            std::sscanf(readbuf.substr(prev + 1, pos - prev - 1).c_str(), "(%u,%u)", &docid, &freq);
             buff.back().postings.push_back( (posting){ docid, freq } );
             prev = pos;
         }
-        std::sscanf(readbuf.substr(prev + 1, readbuf.size() - prev - 1).c_str(), "(%hu,%hu)", &docid, &freq);
+        std::sscanf(readbuf.substr(prev + 1, readbuf.size() - prev - 1).c_str(), "(%u,%u)", &docid, &freq);
         buff.back().postings.push_back( (posting){ docid, freq } );
         readbuf.clear();
     }
@@ -122,7 +135,7 @@ void IndexBuilder::heapPop(std::priority_queue<htype, std::vector<htype>, HeapGr
         heap.push(std::make_pair(i, next));
         
         if (queue.empty() && !file.eof()) {
-            IndexBuilder::readFile(file, queue);
+            IndexBuilder::readTempFile(file, queue);
         }
     }
 }
@@ -136,10 +149,21 @@ void IndexBuilder::writeFile(postings_list& plist) {
         idList.push_back(p.docid);
         freqList.push_back(p.freq);
     }
-    string lexCompressed = DataCompress::compressText(currLex, plist.lex);
-    currLex = plist.lex;
-    string idChunks = DataCompress::toVarBytes(idList, true);
-    string freqChunks = DataCompress::toVarBytes(freqList);
-    file << lexCompressed << " " << idChunks << " " << freqChunks << endl;
+
+    if (compressed) {
+        string lexCompressed = DataCompress::compressText(currLex, plist.lex);
+        currLex = plist.lex;
+        string idChunks = DataCompress::toVarBytes(idList, true);
+        string freqChunks = DataCompress::toVarBytes(freqList);
+        file << lexCompressed << " " << idChunks << " " << freqChunks << endl;
+    } else {
+        file << plist.lex << " ";
+        for (auto id : idList)
+            file << id << ",";
+        file << " ";
+        for (auto freq : freqList)
+            file << freq << ",";
+        file << endl;
+    }
     file.close();
 }

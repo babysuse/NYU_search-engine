@@ -11,11 +11,11 @@ using namespace tinyxml2;
 
 int main(int argc, char **argv) {
     TRECReader trec ("dataset/msmarco-docs.trec");
-    IndexBuilder builder;
+    IndexBuilder builder(3'200, false);
     int i = 0;
     //*
-    for (TrecDoc *trecdoc = trec.getDoc(); i < 10; trecdoc = trec.getDoc(), ++i) {
-        builder.buildPList(trecdoc->docid, trecdoc->text);
+    for (TrecDoc *trecdoc = trec.getDoc(); i < 2; trecdoc = trec.getDoc(), ++i) {
+        builder.buildPList(trecdoc->docid, trecdoc->url, trecdoc->text);
         delete trecdoc;
     }
     // */
