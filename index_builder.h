@@ -38,30 +38,31 @@ typedef struct {
     size_t numOfDoc;
 } ListMeta;
 
+namespace merge {
+    void readTempFile(std::ifstream&, std::queue<postings_list>&);
+    void heapPop(std::priority_queue<htype, std::vector<htype>, HeapGreater>&,
+        int,
+        std::ifstream&,
+        std::queue<postings_list>&);
+    void writeFile(postings_list&, std::string&);
+}
+
 class IndexBuilder {
     public:
-        IndexBuilder(size_t = 32'000, bool = true);
-        size_t buildPList(unsigned short, std::string);
+        static size_t tempFile;
+        static bool compressed;
+        static std::map<std::string, ListMeta> indexmeta;
+        static void mergeFile();
+        static unsigned char resultId;
+
+        IndexBuilder(size_t = 2'000'000, bool = true);
+        void buildPList(unsigned short, std::string);
         void writeTempFile();
-        void mergeFile();
         ListMeta getInfo(std::string);
     private:
         size_t size;
         size_t maxSize;
-        size_t tempFile;
-        bool compressed;
-        unsigned char resultId;
-        std::map<std::string, std::vector<posting> > counter;
-        std::string currLex;
-        std::map<std::string, ListMeta> indexmeta;
-
-        void readTempFile(std::ifstream&, std::queue<postings_list>&);
-        void heapPop(std::priority_queue<htype, std::vector<htype>, HeapGreater>&,
-                int,
-                std::ifstream&,
-                std::queue<postings_list>&);
-        void mergePList(std::list<posting>&, std::list<posting>&);
-        void writeFile(postings_list&);
+        std::map<std::string, std::vector<posting>> counter;
 };
 
 #endif

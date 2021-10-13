@@ -4,12 +4,14 @@
 #include <iostream>
 #include <list>
 
-class DataCompress {
-    public:
-        static std::string compressText(const std::string&, const std::string&);
-        static std::string decompressText(const std::string&, const std::string&);
-        static std::string toVarBytes(std::list<unsigned int>&, bool = false);
-        static std::list<unsigned int> *fromVarBytes(std::string, bool = false);
+namespace DataCompress {
+    std::string compressText(const std::string&, const std::string&);
+    std::string decompressText(const std::string&, const std::string&);
+    std::string tovbyte(unsigned int);
+    std::string toVarBytes(std::list<unsigned int>&, bool = false, size_t = 200);
+    std::list<unsigned int> fromvbyte(std::string, bool = false);
+    std::list<unsigned int> *fromVarBytes(std::string, bool = false);
+    unsigned int getFirstVbyte(std::string);
 };
 
 #endif

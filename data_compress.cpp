@@ -2,6 +2,7 @@
 #include <string>
 
 using namespace std;
+using namespace DataCompress;
 
 string DataCompress::compressText(const string& prev, const string& text) {
     int i = 0;
@@ -21,46 +22,84 @@ string DataCompress::decompressText(const string& prev, const string& text) {
     return prev.substr(0, prelen) + (delimiter < text.size() - 1 ? text.substr(delimiter + 1) : "");
 }
 
-string DataCompress::toVarBytes(list<unsigned int>& nums, bool sorted) {
+string DataCompress::tovbyte(unsigned int num) {
+    string vbyte;
+    while (num > 127) {
+        vbyte = (char)(num & 127) + vbyte;
+        num >>= 7;
+    }
+    vbyte = (char)num + vbyte;
+    *vbyte.rbegin() += 128;
+    return vbyte;
+}
+
+string DataCompress::toVarBytes(list<unsigned int>& nums, bool sorted, size_t nblocks) {
     unsigned int prev = 0;
+    size_t count = 0;
     if (sorted) {
         for (auto& v : nums) {
-            v -= prev;
-            prev = v + prev;
+            if (count % nblocks == 0) {
+                prev = v;
+            } else {
+                v -= prev;
+                prev = v + prev;
+            }
+            ++count;
         }
     }
     string output;
+    count = 0;
     for (auto v : nums) {
-        string bytes;
-        while (v > 127) {
-            bytes = (char)(v & 127) + bytes;
-            v >>= 7;
-        }
-        bytes = (char)v + bytes;
-        *bytes.rbegin() += 128;
-        output += bytes;
+        if (count && count % nblocks == 0)
+            output += ':';
+        output += tovbyte(v);
+        ++count;
     }
     return output;
 }
 
-list<unsigned int> *DataCompress::fromVarBytes(string dataBlocks, bool sorted) {
-    auto nums = new list<unsigned int>();
+list<unsigned int> DataCompress::fromvbyte(string block, bool sorted) {
+    list<unsigned int> nums;
     size_t i = 0;
     unsigned char b;
-    while (i < dataBlocks.size()) {
+    while (i < block.size()) {
         int n = 0;
-        while ((b = dataBlocks[i++]) < 128) {
+        while ((b = block[i++]) < 128) {
             n = (n << 7) + b;
         }
         n = (n << 7) + b - 128;
-        nums->push_back(n);
+        nums.push_back(n);
     }
     if (sorted) {
-        unsigned prev = 0;
-        for (auto it = nums->begin(); it != nums->end(); ++it) {
-            *it += prev;
-            prev = *it;
+        unsigned int prev = 0;
+        for (auto& v : nums) {
+            v += prev;
+            prev = v;
         }
     }
     return nums;
+}
+
+list<unsigned int> *DataCompress::fromVarBytes(string dataBlocks, bool sorted) {
+    auto nums = new list<unsigned int>;
+    size_t prev = 0;
+    for (int i = dataBlocks.find(':'); i != string::npos; prev = i + 1, i = dataBlocks.find(':', prev)) {
+        for (auto v : fromvbyte(dataBlocks.substr(prev, i - prev), true))
+            nums->push_back(v);
+    }
+    for (auto v : fromvbyte(dataBlocks.substr(prev), true))
+        nums->push_back(v);
+    return nums;
+}
+
+unsigned int DataCompress::getFirstVbyte(std::string dataBlock) {
+    unsigned int n = 0;
+    size_t i = 0;
+    unsigned char b;
+    while (i < dataBlock.size() && (b = dataBlock[i++]) < 128) {
+        n = (n << 7) + b;
+    }
+    if (i == dataBlock.size())
+        return n;
+    return (n << 7) + b - 128;
 }

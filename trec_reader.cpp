@@ -21,7 +21,7 @@ TRECReader::~TRECReader() {
 }
 
 TrecDoc *TRECReader::readDoc() {
-    static size_t size = 2'000'000;
+    static size_t size = 200'000;
     static char *readbuf = new char [size];
     memset(readbuf, 0, size);
 
