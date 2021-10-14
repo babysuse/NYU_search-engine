@@ -62,7 +62,7 @@ void parseOpt(int argc, char **argv, Args& args) {
                 }
                 break;
             case 'h':
-                args.errmsg = "Usage: %s [-m maxmem] [-c compress]\n"
+                args.errmsg = "Usage: ./main [-m <maxmem>] [-c <compress>] [-w <workers>]\n"
                               "-m | --mem <maxmem>\n"
                                     "\tNumeric value, could have case-insensitive suffix k, m, g with no space.\n\n"
                                     "\tThis option indicates the cache size for posting lists before writing into temporary file,\n"
@@ -103,8 +103,8 @@ int main(int argc, char **argv) {
         cerr << args.errmsg << endl;
         exit(1);
     }
-
-    TRECReader trec ("dataset/msmarco-docs.trec");
+    // modify testing file here
+    TRECReader trec ("dataset/msmarco-docs.trec.sub");
     size_t workers = args.workers;
     ThreadPool pool(workers);
     queue<future<void>> handlers;
@@ -118,24 +118,20 @@ int main(int argc, char **argv) {
     int i = 0;
     for (TrecDoc *trecdoc = trec.readDoc(); trecdoc; trecdoc = trec.readDoc(), ++i) {
         cout << i << endl;
-        // builders[0].buildPList(trecdoc->docid, trecdoc->text);
-        //*
         handlers.push(pool.enqueue([&builders, &done, i, workers] (TrecDoc *trecdoc) {
                 if (trecdoc) {
-                    // cout << "assign " << trecdoc->docid << " to " << i % workers << endl;
                     int id = i % workers;
-                    while (!done[id]);
+                    while (!done[id]);  // in order to make sure the order of the docID in temp/result file
                     done[id] = false;
                     builders[id].buildPList(trecdoc->docid, trecdoc->text);
                     done[id] = true;
                     delete trecdoc;
-                    trecdoc = nullptr;
                 }}, trecdoc));
+        // only save the task handlers in the last round to save the memory
         if (handlers.size() > workers)
             handlers.pop();
-        // */
     }
-    
+    // wait for the workers in the thread pool
     while (!handlers.empty()) {
         handlers.front().get();
         handlers.pop();
