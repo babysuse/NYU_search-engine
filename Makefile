@@ -6,3 +6,5 @@ main: main.cpp $(HEADERs) $(CPPs)
 	g++ main.cpp $(CPPs) $(ARGs)
 clean:
 	rm main DOCNO-ID temp/temp* index*.out index*.meta
+init:
+	mkdir temp index
