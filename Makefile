@@ -5,6 +5,6 @@ ARGs = -o main -ltidy -lcurl -std=c++17 -g -O3
 main: main.cpp $(HEADERs) $(CPPs)
 	g++ main.cpp $(CPPs) $(ARGs)
 clean:
-	rm main DOCNO-ID temp/temp* index*.out index*.meta
+	rm main DOCMETA temp/temp* index/index*.out index/index*.meta
 init:
 	mkdir temp index
