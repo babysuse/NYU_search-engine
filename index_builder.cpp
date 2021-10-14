@@ -8,15 +8,16 @@
 #include <string>
 
 using std::string;
+using std::cout;
 using std::endl;
 
-size_t IndexBuilder::tempFile = 1;
-bool IndexBuilder::compressed = true;
-unsigned char resultId = 0;
-IndexBuilder::IndexBuilder(size_t mem, bool compressing):
-    size( 0 ), maxSize( mem / sizeof(posting) ) {}
+IndexBuilder::IndexBuilder(unsigned short workerId, size_t mem, bool compressing):
+        workerId( workerId ), compressed( compressing), tempCount( 0 ), size( 0 ), maxSize( mem / sizeof(posting) ) {
+    tempfname = "temp/temp" + std::to_string(workerId);
+    resultfname = "index/index" + std::to_string(workerId);
+}
 
-void IndexBuilder::buildPList(unsigned short docid, string docStr) {
+void IndexBuilder::buildPList(unsigned int docid, string& docStr) {
     // parse doc
     for (string::iterator curr = find_if(docStr.begin(), docStr.end(), isalnum), end = std::find_if_not(curr, docStr.end(), isalnum);
             curr != docStr.end();
@@ -36,7 +37,9 @@ void IndexBuilder::buildPList(unsigned short docid, string docStr) {
 }
 
 void IndexBuilder::writeTempFile() {
-    std::ofstream temp ("temp/temp" + std::to_string(IndexBuilder::tempFile));
+    if (counter.empty())
+        return;
+    std::ofstream temp (tempfname + "-" + std::to_string(tempCount));
     for (auto& lex : counter) {
         if (lex.second.size()) {
             char wdata[20];
@@ -50,16 +53,19 @@ void IndexBuilder::writeTempFile() {
         }
     }
     temp.close();
+    ++tempCount;
 }
 
 void IndexBuilder::mergeFile() {
-    std::ifstream infiles[IndexBuilder::tempFile];
-    std::queue<postings_list> inbuffs[IndexBuilder::tempFile];
+    if (tempCount == 0)
+        return;
+    std::ifstream infiles[tempCount];
+    std::queue<postings_list> inbuffs[tempCount];
     std::priority_queue<htype, std::vector<htype>, HeapGreater> minheap;
     // initialize input buffers and the heap
-    for (int i = 0; i < IndexBuilder::tempFile; ++i) {
-        infiles[i].open("temp/temp" + std::to_string(i));
-        merge::readTempFile(infiles[i], inbuffs[i]);
+    for (int i = 0; i < tempCount; ++i) {
+        infiles[i].open(tempfname + "-" + std::to_string(i));
+        readTempFile(infiles[i], inbuffs[i]);
         minheap.push(std::make_pair(i, inbuffs[i].front()));
         inbuffs[i].pop();
     }
@@ -69,7 +75,7 @@ void IndexBuilder::mergeFile() {
         // htype: {buff_id, postings_list}
         htype next = minheap.top();
         int i = next.first;
-        merge::heapPop(minheap, i, infiles[i], inbuffs[i]);
+        heapPop(minheap, i, infiles[i], inbuffs[i]);
 
         // merge postings_lists that share the same lexicon
         while (!minheap.empty() && next.second.lex.compare( minheap.top().second.lex ) == 0) {
@@ -78,32 +84,36 @@ void IndexBuilder::mergeFile() {
                         return p1.docid < p2.docid;
                     });
             // merge postings that share that same docid
-            for (auto it = next.second.postings.begin(); std::next(it) != next.second.postings.end(); ++it) {
-                auto itn = std::next(it);
-                while (itn != next.second.postings.end() && it->docid == itn->docid) {
+            auto begin = next.second.postings.begin();
+            auto end = next.second.postings.end();
+            for (auto it = begin, itn = std::next(it); it != end && itn != end; ++it, itn = std::next(it)) {
+                if (it->docid == itn->docid) {
                     it->freq += itn->freq;
                     next.second.postings.erase(itn);
-                    itn = std::next(it);
                 }
             }
             int j = top.first;
-            merge::heapPop(minheap, j, infiles[j], inbuffs[j]);
+            heapPop(minheap, j, infiles[j], inbuffs[j]);
         }
 
         // write result
-        merge::writeFile(next.second, prelex);
+        writeFile(next.second, prelex);
     }
-    IndexBuilder::tempFile = 0;
+    writeMeta();
+    tempCount = 0;
 }
 
 // helper of IndexBuilder::mergeFile()
-void merge::readTempFile(std::ifstream& file, std::queue<postings_list>& buff) {
-    const int line = 20;
+void IndexBuilder::readTempFile(std::ifstream& file, std::queue<postings_list>& buff) {
+    // read at most 200 lines into buffers
+    const int line = 200;
     string readbuf;
     for (int i = 0; i < line && file; ++i) {
         std::getline(file, readbuf);
 
         size_t pos = readbuf.find(":");
+        if (pos == string::npos)
+            continue;
         buff.push( (postings_list){ "", std::list<posting>() });
         buff.back().lex += readbuf.substr(0, pos);
         size_t prev = pos;
@@ -120,7 +130,7 @@ void merge::readTempFile(std::ifstream& file, std::queue<postings_list>& buff) {
 }
 
 // helper of IndexBuilder::mergeFile()
-void merge::heapPop(std::priority_queue<htype, std::vector<htype>, HeapGreater>& heap,
+void IndexBuilder::heapPop(std::priority_queue<htype, std::vector<htype>, HeapGreater>& heap,
         int i,
         std::ifstream& file,
         std::queue<postings_list>& queue) {
@@ -131,14 +141,14 @@ void merge::heapPop(std::priority_queue<htype, std::vector<htype>, HeapGreater>&
         heap.push(std::make_pair(i, next));
         
         if (queue.empty() && !file.eof()) {
-            merge::readTempFile(file, queue);
+            readTempFile(file, queue);
         }
     }
 }
 
 // helper of IndexBuilder::mergeFile()
-void merge::writeFile(postings_list& plist, string& currLex) {
-    string fname = "index-" + std::to_string(IndexBuilder::resultId) + ".out";
+void IndexBuilder::writeFile(postings_list& plist, string& currLex) {
+    string fname = resultfname + ".out";
     std::ofstream file (fname, std::ios_base::app);
     std::list<unsigned int> idList;
     std::list<unsigned int> freqList;
@@ -163,14 +173,24 @@ void merge::writeFile(postings_list& plist, string& currLex) {
             file << freq << ",";
         file << endl;
     }
-    IndexBuilder::indexmeta[plist.lex] = {
-        IndexBuilder::resultId,
+    indexmeta[plist.lex] = {
         fpos,
         (size_t)file.tellp() - fpos,
         *idList.begin(),
         *idList.rbegin(),
         idList.size()
     };
+    file.close();
+}
+
+void IndexBuilder::writeMeta() {
+    if (indexmeta.empty())
+        return;
+    std::ofstream file (resultfname + ".meta");
+    for (auto meta : indexmeta) {
+        file << meta.first << ":" << meta.second.offset << ":" << meta.second.blocksize << ":"\
+            << meta.second.startdoc << ":" << meta.second.enddoc << ":" << meta.second.numOfDoc << endl;
+    }
     file.close();
 }
 

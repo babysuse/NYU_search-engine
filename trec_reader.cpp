@@ -10,6 +10,7 @@
 
 using namespace tinyxml2;
 using std::string;
+using std::cout;
 using std::endl;
 
 TRECReader::TRECReader(string filename) {
@@ -40,9 +41,7 @@ TrecDoc *TRECReader::readDoc() {
     } else {
         doc += buffer;
         buffer.erase();
-        delete[] readbuf;
     }
-    
     if (doc.size()) {
         docmeta.push_back({
             "",     // DOCNO
@@ -52,6 +51,7 @@ TrecDoc *TRECReader::readDoc() {
         });
         return parseDoc(doc);
     } else {
+        delete[] readbuf;
         return nullptr;
     }
 }
@@ -71,7 +71,7 @@ TrecDoc *TRECReader::parseDoc(string content) {
     if (i != string::npos) {
         int j = std::distance(trecdoc->text.begin(), find_if(trecdoc->text.begin() + i, trecdoc->text.end(), isspace));
         docmeta.back().url = trecdoc->text.substr(i, j - i);
-        trecdoc->text.erase(i, j + 1);
+        trecdoc->text.erase(i, j - i + 1);
     }
     return trecdoc;
 }

@@ -30,7 +30,6 @@ class HeapGreater {
 };
 
 typedef struct {
-    unsigned char fileID;   // which file
     size_t offset;          // start position of the postings_list in the file
     size_t blocksize;       // block size of the postings_list
     size_t startdoc;        // first docid of the postings_list
@@ -38,31 +37,32 @@ typedef struct {
     size_t numOfDoc;
 } ListMeta;
 
-namespace merge {
-    void readTempFile(std::ifstream&, std::queue<postings_list>&);
-    void heapPop(std::priority_queue<htype, std::vector<htype>, HeapGreater>&,
-        int,
-        std::ifstream&,
-        std::queue<postings_list>&);
-    void writeFile(postings_list&, std::string&);
-}
-
 class IndexBuilder {
     public:
-        static size_t tempFile;
-        static bool compressed;
-        static std::map<std::string, ListMeta> indexmeta;
-        static void mergeFile();
-        static unsigned char resultId;
+        std::map<std::string, ListMeta> indexmeta;
 
-        IndexBuilder(size_t = 2'000'000, bool = true);
-        void buildPList(unsigned short, std::string);
+        IndexBuilder(unsigned short = 0, size_t = 2'000'000, bool = true);
+        void buildPList(unsigned int, std::string&);
         void writeTempFile();
+        void writeMeta();
+        void mergeFile();
         ListMeta getInfo(std::string);
     private:
+        unsigned short workerId;
+        bool compressed;
         size_t size;
         size_t maxSize;
+        size_t tempCount;
+        std::string tempfname;
+        std::string resultfname;
         std::map<std::string, std::vector<posting>> counter;
+
+        void readTempFile(std::ifstream&, std::queue<postings_list>&);
+        void heapPop(std::priority_queue<htype, std::vector<htype>, HeapGreater>&,
+            int,
+            std::ifstream&,
+            std::queue<postings_list>&);
+        void writeFile(postings_list&, std::string&);
 };
 
 #endif
