@@ -97,14 +97,18 @@ void mergeIndex(vector<IndexBuilder>& builders, size_t workers) {
 }
 
 int main(int argc, char **argv) {
-    Args args { true, 2'000'000, 3, "" };
+    // compress, maxmem, workers, errmsg
+    Args args { false, 2'000'000, 100, "" };
     parseOpt(argc, argv, args);
     if (!args.errmsg.empty()) {
         cerr << args.errmsg << endl;
         exit(1);
     }
+
     // modify testing file here
     TRECReader trec ("dataset/msmarco-docs.trec.sub");
+
+    // initialize thread pool
     size_t workers = args.workers;
     ThreadPool pool(workers);
     queue<future<void>> handlers;
@@ -115,13 +119,16 @@ int main(int argc, char **argv) {
         done[i] = true;
     }
 
+    // read documents
     int i = 0;
     for (TrecDoc *trecdoc = trec.readDoc(); trecdoc; trecdoc = trec.readDoc(), ++i) {
         cout << i << endl;
         handlers.push(pool.enqueue([&builders, &done, i, workers] (TrecDoc *trecdoc) {
                 if (trecdoc) {
                     int id = i % workers;
-                    while (!done[id]);  // in order to make sure the order of the docID in temp/result file
+                    // in order to make sure the order of the docID in temp/result file
+                    // no race condition since a task is assigned only to one thread
+                    while (!done[id]);
                     done[id] = false;
                     builders[id].buildPList(trecdoc->docid, trecdoc->text);
                     done[id] = true;
