@@ -1,0 +1,10 @@
+temp/
+index/
+dataset/ 
+trecfile/
+main.dSYM/
+A2.pdf
+A3.pdf
+.DS_Store
+main
+*.swp
