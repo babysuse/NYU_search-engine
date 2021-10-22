@@ -1,12 +1,15 @@
 #include "trec_reader.h"
 #include "tinyxml2.h"
 #include <cstddef>
+#include <cstdio>
 #include <fstream>
 #include <iostream>
 #include <iterator>
+#include <memory>
 #include <regex>
 #include <sstream>
 #include <algorithm>
+#include <array>
 
 using namespace tinyxml2;
 using std::string;
@@ -22,36 +25,27 @@ TRECReader::~TRECReader() {
 }
 
 TrecDoc *TRECReader::readDoc() {
-    static size_t size = 200'000;
-    static char *readbuf = new char [size];
-    memset(readbuf, 0, size);
+    static std::array<char, 256> readbuf;
+    static size_t offset = 0;
+    static char cmd[256];
 
-    int nextDoc = buffer.find("<DOC>", 5);
-    size_t fpos = (size_t)trec.tellg() - buffer.size() + (nextDoc == string::npos ? 0 : nextDoc);
-    while (trec && nextDoc == string::npos) {
-        trec.read(readbuf, size);
-        buffer.append(readbuf, trec.gcount());
-        nextDoc = buffer.find("<DOC>", 5);
-    }
-        
     string doc;
-    if (trec) {
-        doc += buffer.substr(0, nextDoc);
-        buffer.erase(0, nextDoc);
-    } else {
-        doc += buffer;
-        buffer.erase();
+    std::sprintf(cmd, "tail -c +%ld dataset/msmarco-docs.trec | grep -m 1 -B -1 \"</DOC>\"", offset + 1);
+    std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
+    while (fgets(readbuf.data(), readbuf.size(), pipe.get())) {
+        doc += readbuf.data();
     }
+    offset += doc.size();
+
     if (doc.size()) {
         docmeta.push_back({
             "",     // DOCNO
             "",     // url
-            fpos,
+            offset,
             doc.size(),
         });
         return parseDoc(doc);
     } else {
-        delete[] readbuf;
         return nullptr;
     }
 }
