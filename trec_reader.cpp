@@ -16,26 +16,19 @@ using std::string;
 using std::cout;
 using std::endl;
 
-TRECReader::TRECReader(string filename) {
-    trec.open(filename);
-}
-
-TRECReader::~TRECReader() {
-    trec.close();
-}
+TRECReader::TRECReader(string filename): fname(filename) {}
 
 TrecDoc *TRECReader::readDoc() {
-    static std::array<char, 256> readbuf;
+    static std::array<char, 1024> readbuf;
     static size_t offset = 0;
     static char cmd[256];
 
     string doc;
-    std::sprintf(cmd, "tail -c +%ld dataset/msmarco-docs.trec | grep -m 1 -B -1 \"</DOC>\"", offset + 1);
+    std::sprintf(cmd, "tail -c +%ld %s | grep -m 1 -B -1 \"</DOC>\"", offset + 1, fname.c_str());
     std::unique_ptr<FILE, decltype(&pclose)> pipe(popen(cmd, "r"), pclose);
     while (fgets(readbuf.data(), readbuf.size(), pipe.get())) {
         doc += readbuf.data();
     }
-    offset += doc.size();
 
     if (doc.size()) {
         docmeta.push_back({
@@ -44,6 +37,7 @@ TrecDoc *TRECReader::readDoc() {
             offset,
             doc.size(),
         });
+        offset += doc.size();
         return parseDoc(doc);
     } else {
         return nullptr;
@@ -74,19 +68,39 @@ DocMeta TRECReader::getInfo(size_t docid) {
     return docmeta[docid];
 }
 
-string TRECReader::getDoc(size_t docid) {
+void TRECReader::getDoc(size_t docid, string& content) {
+    std::ifstream trec (fname);
     trec.seekg(docmeta[docid].offset);
     size_t length = docmeta[docid].size;
-    char text[length + 1];
-    trec.read(text, docmeta.size());
-    text[length] = '\0';
-    return string(text);
+    cout << docid << " " << docmeta[docid].offset << " " << docmeta[docid].size << endl;
+    char text[length];
+    trec.read(text, length);
+    content = string(text, length);
 }
 
 void TRECReader::writeMeta() {
     std::ofstream trecmeta ("DOCMETA");
+    int docid = 0;
     for (const auto& meta : docmeta) {
-        trecmeta << docmeta.size() - 1 << ":" << meta.docno << ":" << meta.url << ":" << meta.offset << ":" << meta.size << endl;
+        trecmeta << docid << "|" << meta.docno << "|" << meta.url << "|" << meta.offset << "|" << meta.size << endl;
+        ++docid;
+    }
+    trecmeta.close();
+}
+
+void TRECReader::readMeta(std::vector<DocMeta> &meta) {
+    static const size_t SIZE = 65535;
+    static char readbuf[SIZE];
+
+    // use sscanf
+    std::ifstream trecmeta ("DOCMETA");
+    while (trecmeta) {
+        trecmeta.getline(readbuf, SIZE);
+        int docid;
+        char docno[16], url[256];
+        size_t offset, length;
+        std::sscanf(readbuf, "%d|%[^|]|%[^|]|%ld|%ld", &docid, docno, url, &offset, &length);
+        cout << docid << " " << docno << " " << url << " " << offset << " " << length << endl;
     }
     trecmeta.close();
 }

@@ -20,14 +20,14 @@ typedef struct {
 class TRECReader {
     public:
         explicit TRECReader(std::string);
-        ~TRECReader();
         TrecDoc *readDoc();
 
         DocMeta getInfo(size_t);
-        std::string getDoc(size_t);
+        void getDoc(size_t, std::string&);
         void writeMeta();
+        void readMeta(std::vector<DocMeta>&);
     private:
-        std::ifstream trec;
+        std::string fname;
         std::string buffer;
         // size_t docid;   // we don't need this since it is represented with the index of the docmeta
 
