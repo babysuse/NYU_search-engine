@@ -2,16 +2,28 @@
 #define DATA_COMPRESS_H
 
 #include <iostream>
-#include <list>
+#include <vector>
 
 namespace DataCompress {
+    struct Skiplist {
+        unsigned first; // the first number in the block
+        size_t count;   // the number of the encoded numbers
+        size_t length;  // the size of the encoded numbers
+    };
     std::string compressText(const std::string&, const std::string&);
     std::string decompressText(const std::string&, const std::string&);
-    std::string tovbyte(unsigned int);
-    std::string toVarBytes(std::list<unsigned int>&, bool = false, size_t = 200);
-    std::list<unsigned int> fromvbyte(std::string, bool = false);
-    std::list<unsigned int> *fromVarBytes(std::string, bool = false);
-    unsigned int getFirstVbyte(std::string);
+
+    std::string tovbyte(unsigned);
+    // (varbyte, varbyte_skiplist) is returned, if the sequence is unsorted, varbyte_skiplist is an empty string
+    std::pair<std::string, std::string> toVarBytes(std::vector<unsigned>&, std::vector<Skiplist>* = nullptr, bool = false);
+    void fromVarBytes(std::string, std::vector<unsigned>&, bool = false, unsigned first = 0);
+
+    void readSkiplist(std::string&, std::vector<Skiplist>&);
+    // find number using skiplist without decompress all the vbytes
+    int numExisted(int, std::string&, std::vector<Skiplist>&);
+    // get number at specific position
+    unsigned getNumUnsorted(std::string&, int);
+    unsigned getNumSorted(std::string&, int, std::vector<Skiplist>&);
 };
 
 #endif
