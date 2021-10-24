@@ -1,4 +1,5 @@
 temp/
+test/
 index/
 dataset/ 
 trecfile/
@@ -7,4 +8,5 @@ A2.pdf
 A3.pdf
 .DS_Store
 main
+DOCMETA
 *.swp
