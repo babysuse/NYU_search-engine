@@ -188,7 +188,7 @@ int main(int argc, char **argv) {
     }
 
     // modify testing file here
-    TRECReader trec ("dataset/msmarco-docs.trec");
+    TRECReader trec ("dataset/msmarco-docs.trec.sub");
 
     // initialize thread pool
     size_t workers = args.workers;
