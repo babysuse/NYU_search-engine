@@ -39,14 +39,11 @@ typedef struct {
 
 class IndexBuilder {
     public:
-        std::map<std::string, ListMeta> indexmeta;
-
         IndexBuilder(unsigned short = 0, size_t = 2'000'000, bool = true);
         void buildPList(unsigned int, std::string&);
         void writeTempFile();
         void writeMeta();
         void mergeFile();
-        ListMeta getInfo(std::string);
     private:
         unsigned short workerId;
         bool compressed;
@@ -54,15 +51,7 @@ class IndexBuilder {
         size_t maxSize;
         size_t tempCount;
         std::string tempfname;
-        std::string resultfname;
         std::map<std::string, std::vector<posting>> counter;
-
-        void readTempFile(std::ifstream&, std::queue<postings_list>&);
-        void heapPop(std::priority_queue<htype, std::vector<htype>, HeapGreater>&,
-            int,
-            std::ifstream&,
-            std::queue<postings_list>&);
-        void writeFile(postings_list&, std::string&);
 };
 
 #endif
