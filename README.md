@@ -112,8 +112,8 @@ These parts of code is written before the trec file dataset determined to be use
 
 # Usage
 ```bash
-make
 make init
+make
 # for argument detailed info
 ./main --help
 # example 
