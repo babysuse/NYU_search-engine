@@ -23,7 +23,6 @@ void IndexReader::readMeta(string fname, InvListMeta& invlist, bool& compress) {
             metadata += readbuf + "\n";
             std::getline(metafile, readbuf);
         }
-        cout << metadata.size() << endl;
         if (metadata.size()) {
             metadata.erase(metadata.end() - 1);
             extractData(metadata, invlist);
@@ -34,7 +33,6 @@ void IndexReader::readMeta(string fname, InvListMeta& invlist, bool& compress) {
 void IndexReader::extractData(string& metadata, InvListMeta& invlist) {
     string lexicon = metadata.substr(0, metadata.find(" "));
     char metalist[1024];
-    cout << lexicon << ": " << metadata.substr(lexicon.size() + 1) << endl;
     sscanf(metadata.substr(lexicon.size() + 1).c_str(), "%u %u %lu %lu %lu %lu %lu %s",
             &invlist[lexicon].startdoc,
             &invlist[lexicon].enddoc,
@@ -45,7 +43,6 @@ void IndexReader::extractData(string& metadata, InvListMeta& invlist) {
             &invlist[lexicon].freqSize,
             metalist);
     invlist[lexicon].metalist = string(metalist);
-    cout << lexicon << endl;
 }
 
 void IndexReader::readSeq(string fname, size_t offset, size_t length, string& rawdata, vector<unsigned>* seq) {
