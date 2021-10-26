@@ -16,7 +16,7 @@ using std::string;
 using std::cout;
 using std::endl;
 
-TRECReader::TRECReader(string filename): fname(filename) {}
+TRECReader::TRECReader(string filename): fname(filename), totalSize(0) {}
 
 TrecDoc *TRECReader::readDoc() {
     static std::array<char, 1024> readbuf;
@@ -53,6 +53,7 @@ TrecDoc *TRECReader::parseDoc(string content) {
 
     regex_search(content, matchText, std::regex(R"(<TEXT>([\s\S]*?)</TEXT>)"));
     trecdoc->text += matchText[1];
+    totalSize += trecdoc->text.size();
 
     // extract url out of text/content
     int i = trecdoc->text.find("http");
@@ -81,6 +82,7 @@ void TRECReader::getDoc(size_t docid, string& content) {
 void TRECReader::writeMeta() {
     std::ofstream trecmeta ("DOCMETA");
     int docid = 0;
+    trecmeta << docmeta.size() << " " << totalSize / docmeta.size() << endl;
     for (const auto& meta : docmeta) {
         trecmeta << docid << "|" << meta.docno << "|" << meta.url << "|" << meta.offset << "|" << meta.size << endl;
         ++docid;

@@ -29,7 +29,7 @@ class TRECReader {
     private:
         std::string fname;
         std::string buffer;
-        // size_t docid;   // we don't need this since it is represented with the index of the docmeta
+        size_t totalSize;
 
         TrecDoc *parseDoc(std::string);
         std::vector<DocMeta> docmeta;
