@@ -7,7 +7,7 @@ LDFLAGs = -ltidy -lcurl
 CPPFLAGs = -std=c++17 -O3
 
 main: $(OBJs)
-	g++ $(LDFLAGs) -o $@ $^
+	g++ $(LDFLAGs) $(CPPFLAGs) -o $@ $^
 
 $(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
 	g++ $(CPPFLAGs) -c -o $@ $<
