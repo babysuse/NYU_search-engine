@@ -19,9 +19,9 @@ IndexBuilder::IndexBuilder(unsigned short workerId, size_t mem, bool compressing
 
 void IndexBuilder::buildPList(unsigned int docid, string& docStr) {
     // parse doc
-    for (string::iterator curr = find_if(docStr.begin(), docStr.end(), isalnum), end = std::find_if_not(curr, docStr.end(), isalnum);
+    for (string::iterator curr = find_if(docStr.begin(), docStr.end(), isalpha), end = std::find_if_not(curr, docStr.end(), isalpha);
             curr != docStr.end();
-            ++size, curr = find_if(end, docStr.end(), isalnum), end = std::find_if_not(curr, docStr.end(), isalnum)) {
+            ++size, curr = find_if(end, docStr.end(), isalpha), end = std::find_if_not(curr, docStr.end(), isalpha)) {
         string token (curr, end);
         std::transform(token.begin(), token.end(), token.begin(), ::tolower);
         if (counter.find(token) == counter.end() || counter[token].back().docid != docid)
