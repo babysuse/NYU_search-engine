@@ -1,17 +1,9 @@
 #include "trec_reader.h"
-#include "tinyxml2.h"
-#include <cstddef>
-#include <cstdio>
 #include <fstream>
-#include <iostream>
-#include <iterator>
-#include <memory>
 #include <regex>
-#include <sstream>
 #include <algorithm>
 #include <array>
 
-using namespace tinyxml2;
 using std::string;
 using std::cout;
 using std::endl;

@@ -2,7 +2,6 @@
 #define TREC_READER_H
 
 #include <iostream>
-#include <fstream>
 #include <vector>
 
 typedef struct {
