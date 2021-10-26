@@ -1,8 +1,9 @@
 #ifndef TREC_READER_H
 #define TREC_READER_H
 
+#include <cstddef>
 #include <iostream>
-#include <fstream>
+#include <string>
 #include <vector>
 
 typedef struct {
@@ -10,11 +11,14 @@ typedef struct {
     std::string text;
 } TrecDoc ;
 
-typedef struct {
+typedef struct DocMeta {
     std::string docno;
     std::string url;
     size_t offset;      // start position of a document
     size_t size;        // document size including <DOC></DOC>
+
+    DocMeta(std::string docno, std::string url, size_t offset, size_t size):
+        docno(docno), url(url), offset(offset), size(size) {};
 } DocMeta;
 
 class TRECReader {
@@ -25,11 +29,14 @@ class TRECReader {
         DocMeta getInfo(size_t);
         void getDoc(size_t, std::string&);
         void writeMeta();
-        void readMeta(std::vector<DocMeta>&);
+        void readMeta(std::string, std::vector<DocMeta>&);
+        double BM25(std::vector<int>, int, int);
     private:
         std::string fname;
         std::string buffer;
-        const int TOTAL = 3213836;
+        size_t totalSize;
+        int totalDoc;
+        int aveSize;
 
         TrecDoc *parseDoc(std::string);
         std::vector<DocMeta> docmeta;
