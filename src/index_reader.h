@@ -1,5 +1,5 @@
-#ifndef READ_INDEX_H
-#define READ_INDEX_H
+#ifndef INDEX_READER_H
+#define INDEX_READER_H
 
 #include <iostream>
 #include <map>

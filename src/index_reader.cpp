@@ -1,4 +1,4 @@
-#include "readIndex.h"
+#include "index_reader.h"
 
 #include <fstream>
 #include <string>
