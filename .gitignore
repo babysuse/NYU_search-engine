@@ -3,6 +3,7 @@ test/
 index/
 dataset/ 
 trecfile/
+obj/
 main.dSYM/
 A2.pdf
 A3.pdf

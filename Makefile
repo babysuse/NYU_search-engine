@@ -1,13 +1,19 @@
-HEADERs = tinyxml2.h utility.h trec_reader.h index_builder.h data_compress.h
-CPPs = tinyxml2.cpp utility.cpp trec_reader.cpp index_builder.cpp data_compress.cpp
-ARGs = -o main -ltidy -lcurl -std=c++17 -g -O3
-DEBUG_ARGs = -o main -ltidy -lcurl -std=c++17 -g
+SRC_DIR = src
+OBJ_DIR = obj
+HEADERs = $(wildcard $(SRC_DIR)/*.h)
+CPPs = $(wildcard $(SRC_DIR)/*.cpp)
+OBJs = $(patsubst $(SRC_DIR)/%.cpp, $(OBJ_DIR)/%.o, $(CPPs))
+LDFLAGs = -ltidy -lcurl
+CPPFLAGs = -std=c++17 -O3
 
-main: main.cpp $(HEADERs) $(CPPs)
-	g++ main.cpp $(CPPs) $(ARGs)
-test: main.cpp $(HEADERs) $(CPPs)
-	g++ main.cpp $(CPPs) $(DEBUG_ARGs)
-clean:
-	rm main DOCMETA temp/temp* index/index*.out index/index*.meta
+main: $(OBJs)
+	g++ $(LDFLAGs) -o $@ $^
+
+$(OBJ_DIR)/%.o: $(SRC_DIR)/%.cpp
+	g++ $(CPPFLAGs) -c -o $@ $<
+
+.PHONY: init clean
 init:
-	mkdir temp index
+	mkdir temp index $(OBJ_DIR)
+clean:
+	rm main DOCMETA temp/* index/* $(OBJ_DIR)/*

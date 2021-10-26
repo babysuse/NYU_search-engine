@@ -60,7 +60,7 @@ std::pair<string, string> DataCompress::toVarBytes(vector<unsigned>& nums, std::
     unsigned count = 0;
 
     for (auto& v : nums) {
-        if (sorted && skiplist) {
+        if (sorted) {
             ++count;
             if (count == 1)
                 first = v;
@@ -74,7 +74,8 @@ std::pair<string, string> DataCompress::toVarBytes(vector<unsigned>& nums, std::
         if (count == blocksize) {
             size_t length = output.size() - blocklength;
             blocklength += length;
-            skiplist->push_back({ first, count, length });
+            if (skiplist)
+                skiplist->push_back({ first, count, length });
 
             metalist += tovbyte(first);
             metalist += tovbyte(count);
@@ -87,7 +88,8 @@ std::pair<string, string> DataCompress::toVarBytes(vector<unsigned>& nums, std::
     // write the rest to metalist
     if (sorted && count) {
         size_t length = output.size() - blocklength;
-        skiplist->push_back({ first, count, length });
+        if (skiplist)
+            skiplist->push_back({ first, count, length });
         metalist += tovbyte(first);
         metalist += tovbyte(count);
         metalist += tovbyte(length);

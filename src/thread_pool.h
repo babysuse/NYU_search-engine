@@ -29,7 +29,7 @@ private:
     std::condition_variable condition;
     bool stop;
 };
- 
+
 // the constructor just launches some amount of workers
 inline ThreadPool::ThreadPool(size_t threads)
     :   stop(false)

@@ -161,9 +161,9 @@ void IndexBuilder::writeFile(postings_list& plist, string& currLex) {
     if (IndexBuilder::compressed) {
         string lexCompressed = DataCompress::compressText(currLex, plist.lex);
         currLex = plist.lex;
-        string idChunks = DataCompress::toVarBytes(idList, true);
-        string freqChunks = DataCompress::toVarBytes(freqList);
-        file << lexCompressed << " " << idChunks << " " << freqChunks << endl;
+        //string idChunks = DataCompress::toVarBytes(idList, true);
+        //string freqChunks = DataCompress::toVarBytes(freqList);
+        //file << lexCompressed << " " << idChunks << " " << freqChunks << endl;
     } else {
         file << plist.lex << " ";
         for (auto id : idList)
