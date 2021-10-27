@@ -124,14 +124,14 @@ void TRECReader::readMeta(string fname, std::vector<DocMeta>& meta) {
  * Lav: average length of documents
  */
 
-double TRECReader::BM25(std::vector<int> freqs, int tdoc, int docSize) {
+double TRECReader::BM25(std::vector<unsigned> ft, std::vector<unsigned> Nt, unsigned dsize) {
     static const double k1 = 1.2;
     static const double b = 0.75;
 
     double score = 0;
-    for (const auto& ft : freqs) {
-        double K = k1 * ((1 - b) + b * docSize / aveSize);
-        score += log((totalDoc - tdoc + 0.5)/(tdoc + 0.5)) * (k1 + 1) * ft / (K + ft);
+    for (size_t i = 0; i < ft.size(); ++i) {
+        double K = k1 * ((1 - b) + b * dsize / aveSize);
+        score += log((totalDoc - Nt[i] + 0.5)/(Nt[i] + 0.5)) * (k1 + 1) * ft[i] / (K + ft[i]);
     }
     return score;
 }

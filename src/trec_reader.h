@@ -30,7 +30,10 @@ class TRECReader {
         void getDoc(size_t, std::string&);
         void writeMeta();
         void readMeta(std::string, std::vector<DocMeta>&);
-        double BM25(std::vector<int>, int, int);
+        /* ft: for each term, the frequency in the document
+         * Nt: for each term, the number of documents that contain it
+         */
+        double BM25(std::vector<unsigned> ft, std::vector<unsigned> Nt, unsigned docSize);
     private:
         std::string fname;
         std::string buffer;
