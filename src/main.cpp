@@ -11,7 +11,7 @@ using namespace std;
 
 int main() {
     QueryProcessor pr;
-    vector<unsigned> docIDs, freqs;
+    vector<QueryRecord> result;
 
     string userInput;
     set<string> endcmd { "exit", "quit" };
@@ -19,14 +19,21 @@ int main() {
         cout << "~$ ";
         getline(cin, userInput);
 
-        auto groups = pr.process(userInput);
-        for (auto g : groups) {
-            for (auto s : g) {
-                cout << s << " ";
-            }
-            cout << endl;
+        auto groups = pr.parseQuery(userInput);
+        for (const auto& g : groups) {
+            pr.findTopK(g, result);
         }
-        docIDs.clear();
-        freqs.clear();
+
+        // output result
+        sort_heap(result.begin(), result.end());
+        for (auto r = result.rbegin(); r != result.rend(); ++r) {
+            unsigned doc = r->first.first;
+            double score = r->first.second;
+            vector<string> query = r->second;
+
+            cout << doc << ":" << endl;
+            pr.printInfo(doc);
+            // TODO: snippet generation
+        }
     }
 }
