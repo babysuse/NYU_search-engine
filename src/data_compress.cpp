@@ -126,7 +126,7 @@ void DataCompress::readSkiplist(string& metalist, vector<Skiplist>& skiplist) {
     }
 }
 
-int DataCompress::numExisted(int target, string& vbytes, std::vector<Skiplist>& skiplist) {
+int DataCompress::numExisted(unsigned target, string& vbytes, std::vector<Skiplist>& skiplist) {
     unsigned first = 0;     // first number in the previous block
     size_t num = 0;         // # of numbers encoded in the previous block
     size_t size = 0;        // size of the previous block
@@ -154,6 +154,12 @@ int DataCompress::numExisted(int target, string& vbytes, std::vector<Skiplist>& 
         return -1;
     // return the overall position/index (0-based)
     return numSkipped + distance(nums.begin(), it);
+}
+
+int DataCompress::numExisted(unsigned target, std::string& vbytes, std::string& skiplist) {
+    vector<Skiplist> sklist;
+    readSkiplist(skiplist, sklist);
+    return numExisted(target, vbytes, sklist);
 }
 
 unsigned DataCompress::getNumUnsorted(std::string& vbytes, int pos) {
@@ -190,4 +196,10 @@ unsigned DataCompress::getNumSorted(std::string &vbytes, int pos, std::vector<Sk
     vector<unsigned> nums;
     fromVarBytes(vbytes.substr(sizeSkipped, skiplist[i].length), nums, true, skiplist[i].first);
     return nums[pos];
+}
+
+unsigned DataCompress::getNumSorted(std::string& vbytes, int pos, std::string& skiplist) {
+    vector<Skiplist> sklist;
+    readSkiplist(skiplist, sklist);
+    return getNumSorted(vbytes, pos, sklist);
 }
