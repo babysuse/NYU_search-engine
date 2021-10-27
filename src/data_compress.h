@@ -20,8 +20,8 @@ namespace DataCompress {
 
     void readSkiplist(std::string&, std::vector<Skiplist>&);
     // find number using skiplist without decompress all the vbytes
-    int numExisted(unsigned target, std::string&, std::vector<Skiplist>&);
-    int numExisted(unsigned target, std::string&, std::string& skiplist);
+    int numExisted(unsigned target, std::string& vbytes, std::vector<Skiplist>&);
+    int numExisted(unsigned target, std::string& vbytes, std::string& skiplist);
     // get number at specific position
     unsigned getNumUnsorted(std::string&, int pos);
     unsigned getNumSorted(std::string&, int pos, std::vector<Skiplist>&);
