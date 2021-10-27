@@ -8,6 +8,7 @@ using namespace std;
 using namespace IndexReader;
 using std::string;
 
+// read metadata of inv list from file
 void IndexReader::readMeta(string fname, InvListMeta& invlist, bool& compress) {
     std::ifstream metafile (fname);
     string readbuf;
@@ -30,6 +31,7 @@ void IndexReader::readMeta(string fname, InvListMeta& invlist, bool& compress) {
     }
 }
 
+// helper of IndexReader::readMeta()
 void IndexReader::extractData(string& metadata, InvListMeta& invlist) {
     string lexicon = metadata.substr(0, metadata.find(" "));
     char metalist[1024];
@@ -45,16 +47,17 @@ void IndexReader::extractData(string& metadata, InvListMeta& invlist) {
     invlist[lexicon].metalist = string(metalist);
 }
 
-void IndexReader::readSeq(string fname, size_t offset, size_t length, string& rawdata, vector<unsigned>* seq) {
-    char readbuf[length];
+// read inv list from file
+void IndexReader::readSeq(string fname, size_t offset, size_t nbytes, string& data, vector<unsigned>* seq) {
+    char readbuf[nbytes];
     ifstream docfile (fname);
     docfile.seekg(offset);
-    docfile.read(readbuf, length);
-    rawdata = string(readbuf, length);
+    docfile.read(readbuf, nbytes);
+    data = string(readbuf, nbytes);
     if (seq) {
         size_t start = 0, end;
-        while (start < rawdata.size() && (end = rawdata.find(",", start)) != -1) {
-            seq->push_back(stoul(rawdata.substr(start, end)));
+        while (start < data.size() && (end = data.find(",", start)) != -1) {
+            seq->push_back(stoul(data.substr(start, end)));
             start = end + 1;
         }
     }

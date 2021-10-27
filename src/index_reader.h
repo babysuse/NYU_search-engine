@@ -18,11 +18,13 @@ namespace IndexReader {
     } MetaNode;
     typedef std::map<std::string, MetaNode> InvListMeta;
 
+    // read metadata of inv list from file
     void readMeta(std::string, InvListMeta&, bool&);
     void extractData(std::string&, InvListMeta&);
     
-    // if the index file is in compress form, pass NULL to std::vector<unsigned>*
-    void readSeq(std::string, size_t, size_t, std::string&, std::vector<unsigned>* = nullptr);
+    // read inv list from file
+    // pass NULL to or ignore std::vector<unsigned>* if the index file is in compress form 
+    void readSeq(std::string fname, size_t offset, size_t nbytes, std::string& data, std::vector<unsigned>* seq = nullptr);
 }
 
 #endif
