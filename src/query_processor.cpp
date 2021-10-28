@@ -2,7 +2,7 @@
 #include "data_compress.h"
 #include "index_reader.h"
 #include <algorithm>
-#include <utility>
+#include <cstddef>
 
 using namespace std;
 
@@ -50,7 +50,8 @@ vector<vector<string>> QueryProcessor::parseQuery(string query) {
                 }
             }
             transform(term.begin(), term.end(), term.begin(), ::tolower);
-            groups[0].push_back(term);
+            if (find(groups[0].begin(), groups[0].end(), term) == groups[0].end())
+                groups[0].push_back(term);
         }
         start = end;
         term = findNextTerm(query, start, end);
@@ -72,7 +73,8 @@ string QueryProcessor::findNextTerm(string& str, size_t& start, size_t& end) {
 }
 
 void QueryProcessor::printInfo(unsigned doc) {
-    cout << "\t" << docmeta[doc].docno << " " << docmeta[doc].url << endl;
+    cout << "\t" << doc << " (" << docmeta[doc].docno << ")" << endl
+        << "url: " << docmeta[doc].url << endl;
 }
 
 void QueryProcessor::getDocs(const string& term, vector<unsigned>& docIDs) {
@@ -96,16 +98,16 @@ void QueryProcessor::getFreqs(const string& term, string& freqlist) {
 }
 
 // TODO: invlist caching using LFU
-void QueryProcessor::findTopK(const vector<string>& terms, vector<QueryRecord>& result) {
-    // from terms according to length of invlist (from shortest to longest)
-    sort(terms.begin(), terms.end(), [&] (string s1, string s2) {
+void QueryProcessor::findCandidates(vector<string>& terms, Candidates& candidates) {
+    // sort terms according to length of invlist (from shortest to longest)
+    sort(terms.begin(), terms.end(), [this] (const string& s1, const string& s2) -> bool {
                 return invlistmeta[s1].size < invlistmeta[s2].size;
             });
 
     // read invlist & skiplist (compressed)
-    vector<string> invlists (terms.size());     // invlists that contain the terms
-    vector<string> skiplists (terms.size());    // skiplists for the invlists
-    vector<unsigned> numOfDocs (terms.size());  // for each term, the number of documents that contain it (for calculating BM25)
+    vector<string> invlists (terms.size());     // invlists of the querying terms
+    vector<string> skiplists (terms.size());    // skiplists of the invlists
+    vector<unsigned> numOfDocs (terms.size());  // # of documents containing each terms (for calculating BM25)
     size_t i = 0;
     for (const auto& t : terms) {
         getDocs(t, invlists[i]);
@@ -113,29 +115,39 @@ void QueryProcessor::findTopK(const vector<string>& terms, vector<QueryRecord>& 
         numOfDocs[i] = invlistmeta[t].size;
         ++i;
     }
+    string numlist = DataCompress::toVarBytes(numOfDocs).first;
 
     // find top-K result (DAAT - Document-At-A-Time)
-    vector<unsigned> candidates;
-    vector<unsigned> freqs;
-    DataCompress::fromVarBytes(invlists[0], candidates, true);
-    for (const auto& doc : candidates) {
+    // loop through the documents in the first/shortest invlist
+    i = 0;
+    vector<unsigned> documents;
+    DataCompress::fromVarBytes(invlists[0], documents, true);
+    for (const auto& doc : documents) {
+        string freqlist;
+        getFreqs(terms[0], freqlist);
+        unsigned f = DataCompress::getNumUnsorted(freqlist, i++);
+        vector<unsigned> freqs {f};
         if (docExist(1, invlists, skiplists, doc, terms, freqs)) {
-            result.emplace_back(
-                make_pair(doc, trec.BM25(freqs, numOfDocs, docmeta[doc].size)),
-                terms
-            );
-            // maintain top-K result based on BM25 score
-            push_heap(result.begin(), result.end(), [](QueryRecord r1, QueryRecord r2) {
-                        return r1.first.second < r2.first.second;
-                    });
-            if (result.size() == topK) {
-                pop_heap(result.begin(), result.end());
-                result.pop_back();
+            // we cannot filter out any document here, since each of it may have much higher score in other subqueries or in the end
+            if (candidates.find(doc) == candidates.end()) {
+                candidates[doc] = {
+                    terms,
+                    DataCompress::toVarBytes(freqs).first,
+                    numlist
+                };
+            } else {
+                mergeCandidate(candidates[doc], {
+                    terms,
+                    DataCompress::toVarBytes(freqs).first,
+                    numlist
+                });
             }
         }
+        freqs.clear();
     }
 }
 
+// helper of findCandidates()
 bool QueryProcessor::docExist(size_t i, vector<string>& tdoclist, vector<string>& skiplist, unsigned doc, const vector<string>& terms, vector<unsigned>& freqs) {
     if (i == tdoclist.size())
         return true;
@@ -148,4 +160,47 @@ bool QueryProcessor::docExist(size_t i, vector<string>& tdoclist, vector<string>
     getFreqs(terms[i], freqlist);
     freqs.push_back(DataCompress::getNumUnsorted(freqlist, pos));
     return docExist(i + 1, tdoclist, skiplist, doc, terms, freqs);
+}
+
+// helper of findCandidates()
+void QueryProcessor::mergeCandidate(_Candidate& cand, const _Candidate& newCand) {
+    vector<unsigned> freqs;
+    DataCompress::fromVarBytes(cand.freqlist, freqs);
+    vector<unsigned> numOfDocs;
+    DataCompress::fromVarBytes(cand.numOfDocs, numOfDocs);
+    for (auto i = 0; i < newCand.subquery.size(); ++i) {
+        if (find(cand.subquery.begin(), cand.subquery.end(), newCand.subquery[i]) == cand.subquery.end()) {
+            cand.subquery.push_back(newCand.subquery[i]);
+            freqs.push_back(DataCompress::getNumUnsorted(newCand.freqlist, i));
+            numOfDocs.push_back(DataCompress::getNumUnsorted(newCand.numOfDocs, i));
+        }
+    }
+    cand.freqlist = DataCompress::toVarBytes(freqs).first;
+    cand.numOfDocs = DataCompress::toVarBytes(numOfDocs).first;
+}
+
+SearchResults QueryProcessor::findTopK(const Candidates& candidates) {
+    SearchResults result;
+    for (auto const& r : candidates) {
+        // use max heap to maintain top-k result
+        result.push_back({ r.first, BM25(r.first, r.second.freqlist, r.second.numOfDocs)});
+        push_heap(result.begin(), result.end(), [](auto r1, auto r2) {
+                    return r1.score < r2.score;
+                });
+        if (result.size() > topK) {
+            pop_heap(result.begin(), result.end(), [](auto r1, auto r2) {
+                    return r1.score < r2.score;
+                });
+            result.pop_back();
+        }
+    }
+    return result;
+}
+
+double QueryProcessor::BM25(unsigned int doc, std::string ft, std::string Nt) {
+    vector<unsigned> freqlist;  // for each term, the occurrence of it in the document
+    vector<unsigned> numOfDocs; // for each term, the number of documents that contain it
+    DataCompress::fromVarBytes(ft, freqlist);
+    DataCompress::fromVarBytes(Nt, numOfDocs);
+    return trec._BM25(freqlist, numOfDocs, docmeta[doc].size);
 }

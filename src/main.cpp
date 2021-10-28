@@ -10,30 +10,33 @@
 using namespace std;
 
 int main() {
-    QueryProcessor pr;
-    vector<QueryRecord> result;
-
+    QueryProcessor pr;  // the default K = 10
     string userInput;
     set<string> endcmd { "exit", "quit" };
     while (endcmd.find(userInput) == endcmd.end()) {
         cout << "~$ ";
         getline(cin, userInput);
 
+        // find top-k result from all the queries
         auto groups = pr.parseQuery(userInput);
-        for (const auto& g : groups) {
-            pr.findTopK(g, result);
+        Candidates candidates;
+        for (auto& g : groups) {
+            pr.findCandidates(g, candidates);
         }
+        auto result = pr.findTopK(candidates);
+        sort_heap(result.begin(), result.end(), [](auto r1, auto r2) {
+                    return r1.score < r2.score;
+                });
 
         // output result
-        sort_heap(result.begin(), result.end());
+        cout << "searching result:" << endl;
         for (auto r = result.rbegin(); r != result.rend(); ++r) {
-            unsigned doc = r->first.first;
-            double score = r->first.second;
-            vector<string> query = r->second;
-
-            cout << doc << ":" << endl;
-            pr.printInfo(doc);
+            pr.printInfo(r->doc);
+            cout << "score: " << r->score << endl;
             // TODO: snippet generation
+            cout << endl;
         }
+
+        result.clear();
     }
 }
