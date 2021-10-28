@@ -159,7 +159,7 @@ int DataCompress::numExisted(unsigned target, std::string& vbytes, std::string& 
     return numExisted(target, vbytes, sklist);
 }
 
-unsigned DataCompress::getNumUnsorted(std::string& vbytes, int pos) {
+unsigned DataCompress::getNumUnsorted(const std::string& vbytes, int pos) {
     size_t i = 0;
     unsigned char byte;
     while (pos > 0) {
@@ -179,7 +179,7 @@ unsigned DataCompress::getNumUnsorted(std::string& vbytes, int pos) {
     return n;
 }
 
-unsigned DataCompress::getNumSorted(std::string &vbytes, int pos, std::vector<Skiplist> &skiplist) {
+unsigned DataCompress::getNumSorted(const std::string &vbytes, int pos, std::vector<Skiplist> &skiplist) {
     size_t i = 0;
     size_t blocksize = 2;
     size_t sizeSkipped = 0;
@@ -195,7 +195,7 @@ unsigned DataCompress::getNumSorted(std::string &vbytes, int pos, std::vector<Sk
     return nums[pos];
 }
 
-unsigned DataCompress::getNumSorted(std::string& vbytes, int pos, std::string& skiplist) {
+unsigned DataCompress::getNumSorted(const std::string& vbytes, int pos, std::string& skiplist) {
     vector<Skiplist> sklist;
     readSkiplist(skiplist, sklist);
     return getNumSorted(vbytes, pos, sklist);

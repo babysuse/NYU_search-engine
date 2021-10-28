@@ -124,7 +124,7 @@ void TRECReader::readMeta(string fname, std::vector<DocMeta>& meta) {
  * Lav: average length of documents
  */
 
-double TRECReader::BM25(std::vector<unsigned> ft, std::vector<unsigned> Nt, unsigned dsize) {
+double TRECReader::_BM25(std::vector<unsigned> ft, std::vector<unsigned> Nt, unsigned dsize) {
     static const double k1 = 1.2;
     static const double b = 0.75;
 

@@ -23,9 +23,9 @@ namespace DataCompress {
     int numExisted(unsigned target, std::string& vbytes, std::vector<Skiplist>&);
     int numExisted(unsigned target, std::string& vbytes, std::string& skiplist);
     // get number at specific position
-    unsigned getNumUnsorted(std::string&, int pos);
-    unsigned getNumSorted(std::string&, int pos, std::vector<Skiplist>&);
-    unsigned getNumSorted(std::string&, int pos, std::string& skiplist);
+    unsigned getNumUnsorted(const std::string&, int pos);
+    unsigned getNumSorted(const std::string&, int pos, std::vector<Skiplist>&);
+    unsigned getNumSorted(const std::string&, int pos, std::string& skiplist);
 };
 
 #endif
