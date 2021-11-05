@@ -2,6 +2,7 @@
 #include "trec_reader.h"
 #include "data_compress.h"
 
+#include <algorithm>
 #include <iostream>
 #include <string>
 #include <vector>
@@ -17,22 +18,25 @@ int main() {
         cout << "~$ ";
         getline(cin, userInput);
 
-        // find top-k result from all the queries
+        // separate the terms into subgroup (each of which is conjuctive query)
         auto groups = pr.parseQuery(userInput);
+        
+        // find & merge candidates in each subgroup
         Candidates candidates;
         for (auto& g : groups) {
+            for(auto& str : g) cout << str << " "; cout << endl;
             pr.findCandidates(g, candidates);
         }
+
+        // find top-k result out of candidates
         auto result = pr.findTopK(candidates);
-        sort_heap(result.begin(), result.end(), [](auto r1, auto r2) {
-                    return r1.score < r2.score;
-                });
+        sort_heap(result.begin(), result.end(), QueryProcessor::comp);
 
         // output result
         cout << "searching result:" << endl;
-        for (auto r = result.rbegin(); r != result.rend(); ++r) {
+        for (auto r = result.begin(); r != result.end(); ++r) {
             pr.printInfo(r->doc);
-            cout << "score: " << r->score << endl;
+            cout << "score: " << -(r->score) << endl;
             // TODO: snippet generation
             cout << endl;
         }

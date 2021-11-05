@@ -34,7 +34,7 @@ class TRECReader {
          * ft: for each term, the frequency in the document
          * Nt: for each term, the number of documents that contain it
          */
-        double _BM25(std::vector<unsigned> ft, std::vector<unsigned> Nt, unsigned docSize);
+        double _BM25(unsigned ft, unsigned Nt, unsigned docSize);
     private:
         std::string fname;
         std::string buffer;

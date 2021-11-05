@@ -5,24 +5,34 @@
 #include "index_reader.h"
 #include <iostream>
 #include <string>
+#include <tuple>
 #include <vector>
 #include <map>
 
-typedef struct {
-    std::vector<std::string> subquery;
-    std::string freqlist;
-    std::string numOfDocs;
-} _Candidate;
-typedef std::map<unsigned, _Candidate> Candidates;
+// map the terms to the scores
+typedef std::map<std::string, double> QueryScores;
+// map the doc to the terms
+typedef std::map<unsigned, QueryScores> Candidates;
 
-typedef struct {
+typedef struct SearchRecord {
     unsigned doc;
     double score;
-} _SearchRecord;
-typedef std::vector<_SearchRecord> SearchResults;
+    SearchRecord(unsigned doc, double score) : doc(doc), score(score) {}
+} SearchRecord;
+typedef std::vector<SearchRecord> SearchResults;
+
+
+enum class Scoring {
+    BM25,
+    COSINE,
+    PAGERANK
+};
 
 class QueryProcessor {
     public:
+        typedef bool (* Compare)(const SearchRecord, const SearchRecord);
+        constexpr static const Compare comp = [](SearchRecord r1, SearchRecord r2) { return r1.score < r2.score; };
+
         QueryProcessor(unsigned topK = 10);
         void printInfo(unsigned doc);
         void getDocs(const std::string& term, std::vector<unsigned>& doclist);
@@ -46,29 +56,15 @@ class QueryProcessor {
 
         std::string findNextTerm(std::string&, size_t&, size_t&);
         // check existence of a document with compress format
-        bool docExist(
-                size_t i,
-                std::vector<std::string>& tdoclist,
-                std::vector<std::string>& skiplist,
-                unsigned docid,
-                const std::vector<std::string>& term,
-                std::vector<unsigned>& freqSize
-            );
+        bool docExist(unsigned docid, size_t i, const std::vector<std::string>& terms, Candidates& candidates);
 
-        // merge two results from two subqueries that share the same documenet
-        // for example:
-        //      query: (dog AND cat) OR (dog AND rabbit)
-        //   subquery: (dog AND cat) produces documents 79 80
-        //             candidate[80] => {dog, cat}
-        //   subquery: (dog AND rabbit) produces documents 80 81
-        //             candidate[80] => {dog, rabbit}
-        //   we want candidate[80] => {dog, cat, rabbit}, including the freqlist & numOfDocs
-        void mergeCandidate(_Candidate& q1, const _Candidate& q2);
+        template <typename ...T>
+        double getScore(std::tuple<T...> args, Scoring score = Scoring::BM25);
         /*
          * ft: for each term, the frequency in the document
          * Nt: for each term, the number of documents that contain it
          */
-        double BM25(unsigned doc, std::string ft, std::string Nt);
+        double BM25(unsigned doc, double ft, double Nt);
 };
 
 #endif
