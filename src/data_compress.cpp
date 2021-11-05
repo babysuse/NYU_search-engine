@@ -172,7 +172,7 @@ unsigned DataCompress::getNumUnsorted(const std::string& vbytes, int pos) {
     // decode and return the number
     unsigned n = 0;
     byte = vbytes[i];
-    while ((byte = vbytes[i]) < 128) {
+    while ((byte = vbytes[i++]) < 128) {
         n = (n << 7) + byte;
     }
     n = (n << 7) + byte - 128;
