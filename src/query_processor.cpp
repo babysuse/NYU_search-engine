@@ -16,6 +16,9 @@ QueryProcessor::QueryProcessor(unsigned topK, unsigned maxSnippet):
         topK(topK),
         maxSnippet(maxSnippet),
         metafile("index_test/meta.out"),
+        invlistCache(100),
+        freqCache(100),
+        docCache(100),
         docfile("index_test/doc.out"),
         freqfile("index_test/freq.out"),
         trec("dataset/msmarco-docs.trec.sub") {
@@ -117,22 +120,32 @@ void QueryProcessor::printUrl(unsigned doc) {
 
 void QueryProcessor::getDocs(const string& term, vector<unsigned>& docIDs) {
     string rawdata;
-    IndexReader::readSeq(docfile, invlistmeta[term].docOffset, invlistmeta[term].docSize, rawdata, nullptr);
+    getDocs(term, rawdata);
     DataCompress::fromVarBytes(rawdata, docIDs, true);
 }
 
 void QueryProcessor::getDocs(const string& term, string& doclist) {
-    IndexReader::readSeq(docfile, invlistmeta[term].docOffset, invlistmeta[term].docSize, doclist, nullptr);
+    if (invlistCache.exist(term)) {
+        doclist = invlistCache.get(term);
+    } else {
+        IndexReader::readSeq(docfile, invlistmeta[term].docOffset, invlistmeta[term].docSize, doclist, nullptr);
+        invlistCache.set(term, doclist);
+    }
 }
 
-void QueryProcessor::getFreqs(const string& term, vector<unsigned int> freqs) {
+void QueryProcessor::getFreqs(const string& term, vector<unsigned int>& freqs) {
     string rawdata;
-    IndexReader::readSeq(freqfile, invlistmeta[term].freqOffset, invlistmeta[term].freqSize, rawdata, nullptr);
+    getFreqs(term, rawdata);
     DataCompress::fromVarBytes(rawdata, freqs);
 }
 
 void QueryProcessor::getFreqs(const string& term, string& freqlist) {
-    IndexReader::readSeq(freqfile, invlistmeta[term].freqOffset, invlistmeta[term].freqSize, freqlist, nullptr);;
+    if (freqCache.exist(term)) {
+        freqlist = freqCache.get(term);
+    } else {
+        IndexReader::readSeq(freqfile, invlistmeta[term].freqOffset, invlistmeta[term].freqSize, freqlist, nullptr);;
+        freqCache.set(term, freqlist);
+    }
 }
 
 // for AND/conjunctive terms/query including term1, term2, term3
@@ -159,7 +172,6 @@ void QueryProcessor::findCandidates(vector<string>& terms, Candidates& candidate
     }
 }
 
-// TODO: invlist caching using LFU => getDoc(), getFreq()
 // helper of findCandidates()
 bool QueryProcessor::docExist(unsigned doc, size_t i, const vector<string>& terms, Candidates& candidates) {
     if (i == terms.size())
@@ -234,7 +246,10 @@ string QueryProcessor::generateSnippet(const unsigned doc, QueryScores scores) {
         std::for_each(scores.begin(), scores.end(), [=](auto& s) { s.second += -minScore + 0.01; });
 
     string doctext;
-    trec.getDoc(doc, doctext, docmeta);
+    if (docCache.exist(doc))
+        doctext = docCache.get(doc);
+    else
+        trec.getDoc(doc, doctext, docmeta);
 
     size_t wordId = 0;
     typedef std::pair<string::iterator, string::iterator> Word;

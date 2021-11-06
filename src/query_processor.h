@@ -3,6 +3,7 @@
 
 #include "trec_reader.h"
 #include "index_reader.h"
+#include "LFU.h"
 #include <iostream>
 #include <string>
 #include <tuple>
@@ -38,7 +39,7 @@ class QueryProcessor {
         void printUrl(unsigned doc);
         void getDocs(const std::string& term, std::vector<unsigned>& doclist);
         void getDocs(const std::string& term, std::string& doclist);
-        void getFreqs(const std::string& term, std::vector<unsigned>);
+        void getFreqs(const std::string& term, std::vector<unsigned>&);
         void getFreqs(const std::string& term, std::string& freqlist);
 
         std::vector<std::vector<std::string>> parseQuery(std::string);
@@ -54,10 +55,13 @@ class QueryProcessor {
         unsigned maxSnippet;
         std::string metafile;
         std::string docfile;
+        LFU<std::string, std::string> invlistCache;
         std::string freqfile;
+        LFU<std::string, std::string> freqCache;
         TRECReader trec;
         IndexReader::InvListMeta invlistmeta;
         std::vector<DocMeta> docmeta;
+        LFU<unsigned, std::string> docCache;
 
         std::string findNextTerm(std::string&, size_t&, size_t&);
         std::vector<std::string> _removeStopWords(const std::vector<std::string>& queries, double threshold);
