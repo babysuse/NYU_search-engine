@@ -198,17 +198,13 @@ double QueryProcessor::BM25(unsigned doc, double ft, double Nt) {
 }
 
 string QueryProcessor::generateSnippet(const unsigned doc, QueryScores scores) {
-    cout << "shifting scores" << endl;
     // shift the scores to guarantee positive values
     double minScore = std::numeric_limits<double>::infinity();
     for (const auto s : scores)
         minScore = s.second < minScore ? s.second : minScore;
     if (minScore < 0)
         std::for_each(scores.begin(), scores.end(), [=](auto& s) { s.second += -minScore + 0.01; });
-    for (auto& s : scores)
-        cout << s.first << ": " << s.second << endl;
 
-    cout << "retrieving document " << doc << endl;
     string doctext;
     trec.getDoc(doc, doctext, docmeta);
 
@@ -245,7 +241,6 @@ string QueryProcessor::generateSnippet(const unsigned doc, QueryScores scores) {
                 snippetBegin = window.begin()->second.first;
                 snippetEnd = window.rbegin()->second.second;
             }
-            //cout << wcount << " collected, scored " << currScore << endl;
         }
     }
 
