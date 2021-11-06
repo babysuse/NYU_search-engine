@@ -272,11 +272,12 @@ string QueryProcessor::generateSnippet(const unsigned doc, QueryScores scores) {
         }
     }
 
-    expandSnippet(doctext, snippetBegin, snippetEnd);
+    if (maxSnippet)
+        expandSnippet(doctext, snippetBegin, snippetEnd);
     string snippet = string(snippetBegin, snippetEnd);
     replace(snippet.begin(), snippet.end(), '\n', ' ');
     replace(snippet.begin(), snippet.end(), '\t', ' ');
-    return "... " + snippet + " ...";
+    return (maxSnippet ? snippet : "") + " ...";
 }
 
 void QueryProcessor::expandSnippet(const std::string& doctext, std::string::iterator& snippetBegin, std::string::iterator& snippetEnd) {
