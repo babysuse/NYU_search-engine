@@ -53,11 +53,17 @@ void parseOpt(int argc, char **argv, Args& args) {
                                     "\tNumeric value, must be at least 1 if specified.\n\n"
                                     "\tThis option indicates number of output ordered by the ranking.\n"
                                     "\tDefault is 10.\n"
-                              "-S | --compress <compress>\n"
+                              "-S | --snippet-size <compress>\n"
                                     "\tNumeric value, must be at least 0 if specified\n\n"
                                     "\tThis option indicates the approximate size of the output snippet for each documents returned.\n"
                                     "\tMay be a bit larger in order to display the complete sentences.\n"
-                                    "\tDefault is 32.\n";
+                                    "\tDefault is 32.\n"
+                              "-b | --debug\n"
+                                    "\tIf this option is given, the program use the dataset for test/debug in the directory index_test.\n"
+                                    "\tThe orignal dataset contains about 3M documents, while the testing dataset is the subset of it,\n"
+                                    "\twhich is 30K documents.\n"
+                              "-h | --help\n"
+                                    "\tShow this page to get an idea of the how program works.";
                 break;
             default:
                 args.errmsg = "Usage: %s [-k <topK>] [-S <snippet size>]\n"
