@@ -24,6 +24,7 @@ QueryProcessor::QueryProcessor(unsigned topK, unsigned maxSnippet):
         trec("dataset/msmarco-docs.trec.sub") {
     // read metadata of invlist (skiplists)
     bool compress;
+    cout << "Loading..." << endl;
     readMeta(metafile, invlistmeta, compress);
 
     // read metadata of documents
