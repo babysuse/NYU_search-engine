@@ -42,6 +42,7 @@ class QueryProcessor {
         void getFreqs(const std::string& term, std::string& freqlist);
 
         std::vector<std::vector<std::string>> parseQuery(std::string);
+        std::vector<std::vector<std::string>> removeStopWords(const std::vector<std::vector<std::string>>& queries);
         // find candidates of subquery
         void findCandidates(std::vector<std::string>& query, Candidates& candidates);
         // merge results of subqueries into the final one (using SRF (simple ranking function) BM25)
@@ -59,6 +60,7 @@ class QueryProcessor {
         std::vector<DocMeta> docmeta;
 
         std::string findNextTerm(std::string&, size_t&, size_t&);
+        std::vector<std::string> _removeStopWords(const std::vector<std::string>& queries, double threshold);
         // check existence of a document with compress format
         bool docExist(unsigned docid, size_t i, const std::vector<std::string>& terms, Candidates& candidates);
 

@@ -79,6 +79,34 @@ string QueryProcessor::findNextTerm(string& str, size_t& start, size_t& end) {
     }
 }
 
+vector<vector<string>> QueryProcessor::removeStopWords(const vector<vector<string>>& queries) {
+    vector<vector<string>> result;
+    double threshold = 0.6;
+    while (result.empty()) {
+        for (const auto& subquery : queries) {
+            vector<string> subresult = _removeStopWords(subquery, threshold);
+            if (!subresult.empty())
+                result.push_back(subresult);
+        }
+        threshold += 0.1;
+    }
+    return result;
+}
+
+// helper of QueryProcessor::removeStopWords()
+vector<string> QueryProcessor::_removeStopWords(const vector<string>& query, double rate) {
+    vector<string> result;
+    double threshold = docmeta.size() * rate;
+    while (result.empty()) {
+        for (auto term : query) {
+            if (invlistmeta[term].size < threshold)
+                result.push_back(term);
+        }
+    }
+    return result;
+}
+
+
 void QueryProcessor::printTitle(unsigned doc) {
     cout << "\t" << doc << " (" << docmeta[doc].docno << ")" << endl;
 }
