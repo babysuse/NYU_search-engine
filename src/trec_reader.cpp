@@ -63,6 +63,10 @@ DocMeta TRECReader::getInfo(size_t docid) {
 }
 
 void TRECReader::getDoc(size_t docid, string& content) {
+    getDoc(docid, content, this->docmeta);
+}
+
+void TRECReader::getDoc(size_t docid, std::string& content, std::vector<DocMeta>& docmeta) {
     std::ifstream trec (fname);
     trec.seekg(docmeta[docid].offset);
     size_t length = docmeta[docid].size;
@@ -82,9 +86,14 @@ void TRECReader::writeMeta() {
     trecmeta.close();
 }
 
+void TRECReader::readMeta(std::string fname) {
+    readMeta(fname, this->docmeta);
+}
+
 void TRECReader::readMeta(string fname, std::vector<DocMeta>& meta) {
     static const size_t SIZE = 65535;
     static char readbuf[SIZE];
+    meta.clear();
 
     // use sscanf
     std::ifstream trecmeta (fname);

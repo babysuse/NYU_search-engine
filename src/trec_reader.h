@@ -28,7 +28,9 @@ class TRECReader {
 
         DocMeta getInfo(size_t);
         void getDoc(size_t, std::string&);
+        void getDoc(size_t, std::string&, std::vector<DocMeta>&);
         void writeMeta();
+        void readMeta(std::string);
         void readMeta(std::string, std::vector<DocMeta>&);
         /* 
          * ft: for each term, the frequency in the document
