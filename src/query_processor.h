@@ -33,8 +33,9 @@ class QueryProcessor {
         typedef bool (* Compare)(const SearchRecord, const SearchRecord);
         constexpr static const Compare comp = [](SearchRecord r1, SearchRecord r2) { return r1.score < r2.score; };
 
-        QueryProcessor(unsigned topK = 10);
-        void printInfo(unsigned doc);
+        QueryProcessor(unsigned topK = 10, unsigned maxSnippet = 32);
+        void printTitle(unsigned doc);
+        void printUrl(unsigned doc);
         void getDocs(const std::string& term, std::vector<unsigned>& doclist);
         void getDocs(const std::string& term, std::string& doclist);
         void getFreqs(const std::string& term, std::vector<unsigned>);
@@ -45,8 +46,11 @@ class QueryProcessor {
         void findCandidates(std::vector<std::string>& query, Candidates& candidates);
         // merge results of subqueries into the final one (using SRF (simple ranking function) BM25)
         SearchResults findTopK(const Candidates& candidates);
+
+        std::string generateSnippet(const unsigned doc, QueryScores scores);
     private:
         unsigned topK;
+        unsigned maxSnippet;
         std::string metafile;
         std::string docfile;
         std::string freqfile;
@@ -65,6 +69,8 @@ class QueryProcessor {
          * Nt: for each term, the number of documents that contain it
          */
         double BM25(unsigned doc, double ft, double Nt);
+
+        void expandSnippet(const std::string& doctext, std::string::iterator& snippetBegin, std::string::iterator& snippetEnd);
 };
 
 #endif

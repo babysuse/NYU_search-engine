@@ -2,12 +2,19 @@
 #include "data_compress.h"
 #include "index_reader.h"
 #include <algorithm>
+#include <limits>
+#include <cctype>
 #include <cstddef>
+#include <set>
 
-using namespace std;
+using std::string;
+using std::vector;
+using std::cout;
+using std::endl;
 
-QueryProcessor::QueryProcessor(unsigned topK):
+QueryProcessor::QueryProcessor(unsigned topK, unsigned maxSnippet):
         topK(topK),
+        maxSnippet(maxSnippet),
         metafile("index_test/meta.out"),
         docfile("index_test/doc.out"),
         freqfile("index_test/freq.out"),
@@ -72,9 +79,12 @@ string QueryProcessor::findNextTerm(string& str, size_t& start, size_t& end) {
     }
 }
 
-void QueryProcessor::printInfo(unsigned doc) {
-    cout << "\t" << doc << " (" << docmeta[doc].docno << ")" << endl
-        << "url: " << docmeta[doc].url << endl;
+void QueryProcessor::printTitle(unsigned doc) {
+    cout << "\t" << doc << " (" << docmeta[doc].docno << ")" << endl;
+}
+
+void QueryProcessor::printUrl(unsigned doc) {
+    cout << "url: " << docmeta[doc].url << endl;
 }
 
 void QueryProcessor::getDocs(const string& term, vector<unsigned>& docIDs) {
@@ -143,7 +153,7 @@ bool QueryProcessor::docExist(unsigned doc, size_t i, const vector<string>& term
         getFreqs(terms[i], freqlist);
         unsigned ft = DataCompress::getNumUnsorted(freqlist, pos);
         unsigned Nt = invlistmeta[terms[i]].size;
-        candidates[doc][terms[i]] = getScore(make_tuple(doc, ft, Nt));
+        candidates[doc][terms[i]] = getScore(std::make_tuple(doc, ft, Nt));
     }
     return result;
 }
@@ -169,12 +179,12 @@ SearchResults QueryProcessor::findTopK(const Candidates& candidates) {
 }
 
 template <typename ...T>
-double QueryProcessor::getScore(tuple<T...> args, Scoring scoring) {
+double QueryProcessor::getScore(std::tuple<T...> args, Scoring scoring) {
     switch (scoring) {
     case Scoring::BM25:
         unsigned doc;
         double ft, Nt;
-        tie (doc, ft, Nt) = args;
+        std::tie (doc, ft, Nt) = args;
         return BM25(doc, ft, Nt);
     case Scoring::COSINE:
         return 0;
@@ -185,4 +195,74 @@ double QueryProcessor::getScore(tuple<T...> args, Scoring scoring) {
 
 double QueryProcessor::BM25(unsigned doc, double ft, double Nt) {
     return trec._BM25(ft, Nt, docmeta[doc].size);
+}
+
+string QueryProcessor::generateSnippet(const unsigned doc, QueryScores scores) {
+    cout << "shifting scores" << endl;
+    // shift the scores to guarantee positive values
+    double minScore = std::numeric_limits<double>::infinity();
+    for (const auto s : scores)
+        minScore = s.second < minScore ? s.second : minScore;
+    if (minScore < 0)
+        std::for_each(scores.begin(), scores.end(), [=](auto& s) { s.second += -minScore + 0.01; });
+    for (auto& s : scores)
+        cout << s.first << ": " << s.second << endl;
+
+    cout << "retrieving document " << doc << endl;
+    string doctext;
+    trec.getDoc(doc, doctext, docmeta);
+
+    size_t wordId = 0;
+    typedef std::pair<string::iterator, string::iterator> Word;
+    std::map<size_t, Word> window;  // queried terms within the distance of maxSnippet
+    double currScore = 0;
+
+    string::iterator snippetBegin, snippetEnd;
+    snippetBegin = snippetEnd = doctext.begin();
+    double maxScore = 0;
+    size_t wcount = 0;              // # of queried word contained
+
+    // sliding window algorithm
+    for (string::iterator curr = find_if(doctext.begin(), doctext.end(), isalpha), end = find_if_not(curr, doctext.end(), isalpha);
+            curr != doctext.end();
+            ++wordId, curr = find_if(end, doctext.end(), isalpha), end = std::find_if_not(curr, doctext.end(), isalpha)) {
+        string token (curr, end);
+        if (scores.find(token) != scores.end()) {
+            currScore += scores[token];
+            window[wordId] = make_pair(curr, end);
+            wcount += 1;
+            // check window size
+            size_t frontId = window.begin()->first;
+            while (wordId - frontId > maxSnippet) {
+                auto [begin, end] = window.begin()->second;
+                currScore -= scores[string(begin, end)];
+                window.erase(frontId);
+                wcount -= 1;
+                frontId = window.begin()->first;
+            }
+            if (currScore > maxScore) {
+                maxScore = currScore;
+                snippetBegin = window.begin()->second.first;
+                snippetEnd = window.rbegin()->second.second;
+            }
+            //cout << wcount << " collected, scored " << currScore << endl;
+        }
+    }
+
+    expandSnippet(doctext, snippetBegin, snippetEnd);
+    string snippet = string(snippetBegin, snippetEnd);
+    replace(snippet.begin(), snippet.end(), '\n', ' ');
+    replace(snippet.begin(), snippet.end(), '\t', ' ');
+    return "... " + snippet + " ...";
+}
+
+void QueryProcessor::expandSnippet(const std::string& doctext, std::string::iterator& snippetBegin, std::string::iterator& snippetEnd) {
+    std::set<char> delimiters {'\n', '\t', '.', ','};  // delimiters of sentences
+    while (delimiters.find(*(snippetBegin - 1)) == delimiters.end()) {
+        snippetBegin -= 1;
+    }
+    while (delimiters.find(*(snippetEnd)) == delimiters.end()) {
+        snippetEnd += 1;
+    }
+    snippetEnd += 1;
 }

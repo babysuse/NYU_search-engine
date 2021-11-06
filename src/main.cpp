@@ -13,10 +13,12 @@ using namespace std;
 int main() {
     QueryProcessor pr;  // the default K = 10
     string userInput;
-    set<string> endcmd { "exit", "quit" };
-    while (endcmd.find(userInput) == endcmd.end()) {
+    set<string> endcmd { "EXIT", "QUIT" };
+    while (true) {
         cout << "~$ ";
         getline(cin, userInput);
+        if (endcmd.find(userInput) != endcmd.end())
+            break;
 
         // separate the terms into subgroup (each of which is conjuctive query)
         auto groups = pr.parseQuery(userInput);
@@ -35,9 +37,10 @@ int main() {
         // output result
         cout << "searching result:" << endl;
         for (auto r = result.begin(); r != result.end(); ++r) {
-            pr.printInfo(r->doc);
+            pr.printTitle(r->doc);
+            cout << pr.generateSnippet(r->doc, candidates[r->doc]) << endl;
+            pr.printUrl(r->doc);
             cout << "score: " << -(r->score) << endl;
-            // TODO: snippet generation
             cout << endl;
         }
 
