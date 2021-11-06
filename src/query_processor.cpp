@@ -12,23 +12,23 @@ using std::vector;
 using std::cout;
 using std::endl;
 
-QueryProcessor::QueryProcessor(unsigned topK, unsigned maxSnippet):
+QueryProcessor::QueryProcessor(unsigned topK, unsigned maxSnippet, bool debug):
         topK(topK),
         maxSnippet(maxSnippet),
-        metafile("index_test/meta.out"),
+        metafile(debug ? "index_test/meta.out" : "index/meta.out"),
         invlistCache(100),
         freqCache(100),
         docCache(100),
-        docfile("index_test/doc.out"),
-        freqfile("index_test/freq.out"),
-        trec("dataset/msmarco-docs.trec.sub") {
+        docfile(debug ? "index_test/doc.out" : "index/doc.out"),
+        freqfile(debug ? "index_test/freq.out" : "index/freq.out"),
+        trec(debug ? "dataset/msmarco-docs.trec.sub" : "dataset/msmarco-docs.trec") {
+    cout << "Loading..." << endl;
     // read metadata of invlist (skiplists)
     bool compress;
-    cout << "Loading..." << endl;
     readMeta(metafile, invlistmeta, compress);
 
     // read metadata of documents
-    trec.readMeta("index_test/DOCMETA", docmeta);
+    trec.readMeta(debug ? "index_test/DOCMETA" :"index/DOCMETA", docmeta);
 }
 
 vector<vector<string>> QueryProcessor::parseQuery(string query) {
@@ -239,18 +239,24 @@ double QueryProcessor::BM25(unsigned doc, double ft, double Nt) {
 }
 
 string QueryProcessor::generateSnippet(const unsigned doc, QueryScores scores) {
+    string doctext;
+    if (docCache.exist(doc)) {
+        doctext = docCache.get(doc);
+    } else {
+        string document;
+        trec.getDoc(doc, document, docmeta);
+        auto docNode = trec.parseDoc(document);
+        doctext = docNode->text;
+        docCache.set(doc, doctext);
+        delete docNode;
+    }
+
     // shift the scores to guarantee positive values
     double minScore = std::numeric_limits<double>::infinity();
     for (const auto s : scores)
         minScore = s.second < minScore ? s.second : minScore;
     if (minScore < 0)
         std::for_each(scores.begin(), scores.end(), [=](auto& s) { s.second += -minScore + 0.01; });
-
-    string doctext;
-    if (docCache.exist(doc))
-        doctext = docCache.get(doc);
-    else
-        trec.getDoc(doc, doctext, docmeta);
 
     size_t wordId = 0;
     typedef std::pair<string::iterator, string::iterator> Word;
@@ -288,7 +294,7 @@ string QueryProcessor::generateSnippet(const unsigned doc, QueryScores scores) {
         }
     }
 
-    if (maxSnippet)
+    if (maxSnippet && wcount > 0)
         expandSnippet(doctext, snippetBegin, snippetEnd);
     string snippet = string(snippetBegin, snippetEnd);
     replace(snippet.begin(), snippet.end(), '\n', ' ');
@@ -297,12 +303,15 @@ string QueryProcessor::generateSnippet(const unsigned doc, QueryScores scores) {
 }
 
 void QueryProcessor::expandSnippet(const std::string& doctext, std::string::iterator& snippetBegin, std::string::iterator& snippetEnd) {
-    std::set<char> delimiters {'\n', '\t', '.', ','};  // delimiters of sentences
-    while (delimiters.find(*(snippetBegin - 1)) == delimiters.end()) {
+    size_t extend = 0;
+    std::set<char> delimiters {'\n', '\t', '.', ',', '/', ']'};  // delimiters of sentences
+    while (snippetBegin >= doctext.begin() && (extend < 10 || delimiters.find(*(snippetBegin - 1)) == delimiters.end())) {
+        extend += 1;
         snippetBegin -= 1;
     }
-    while (delimiters.find(*(snippetEnd)) == delimiters.end()) {
+    extend = 0;
+    while (snippetEnd < doctext.end() && (extend < 10 || delimiters.find(*(snippetEnd)) == delimiters.end())) {
+        extend += 1;
         snippetEnd += 1;
     }
-    snippetEnd += 1;
 }

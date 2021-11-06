@@ -42,7 +42,8 @@ TrecDoc *TRECReader::parseDoc(string content) {
     trecdoc->docid = docmeta.size() - 1;
     std::smatch matchID, matchText;
     regex_search(content, matchID, std::regex(R"(<DOCNO>([\s\S]*?)</DOCNO>)"));
-    docmeta.back().docno = matchID[1];
+    if (docmeta.size())
+        docmeta.back().docno = matchID[1];
 
     regex_search(content, matchText, std::regex(R"(<TEXT>([\s\S]*?)</TEXT>)"));
     trecdoc->text += matchText[1];
@@ -52,7 +53,8 @@ TrecDoc *TRECReader::parseDoc(string content) {
     int i = trecdoc->text.find("http");
     if (i != string::npos) {
         int j = std::distance(trecdoc->text.begin(), find_if(trecdoc->text.begin() + i, trecdoc->text.end(), isspace));
-        docmeta.back().url = trecdoc->text.substr(i, j - i);
+        if (docmeta.size())
+            docmeta.back().url = trecdoc->text.substr(i, j - i);
         trecdoc->text.erase(i, j - i + 1);
     }
     return trecdoc;

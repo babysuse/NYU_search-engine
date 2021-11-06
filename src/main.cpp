@@ -14,6 +14,7 @@ using namespace std;
 typedef struct {
     unsigned topk;
     unsigned snippetSize;
+    bool debug;
     std::string errmsg;
 } Args;
 
@@ -21,10 +22,12 @@ void parseOpt(int argc, char **argv, Args& args) {
     const struct option options[] = {
         {"topk", required_argument, 0, 'k'},
         {"snippet-size", required_argument, 0, 'S'},
+        {"debug", no_argument, 0, 'd'},
+        {"help", no_argument, 0, 'h'},
         {NULL, 0, 0, '\0'},
     };
     int opt;
-    while ((opt = getopt_long(argc, argv, "k:S:h", options, NULL)) != -1) {
+    while ((opt = getopt_long(argc, argv, "k:S:dh", options, NULL)) != -1) {
         int pos;
         switch (opt) {
             case 'k':
@@ -40,6 +43,9 @@ void parseOpt(int argc, char **argv, Args& args) {
                     args.errmsg = "Invalid argument for option snippet-size (must be nonnegative)\n"
                                   "More info with -h or --help option\n";;
                 }
+                break;
+             case 'd':
+                args.debug = true;
                 break;
             case 'h':
                 args.errmsg = "Usage: ./main [-m <maxmem>] [-c <compress>] [-w <workers>]\n"
@@ -61,14 +67,14 @@ void parseOpt(int argc, char **argv, Args& args) {
 }
 
 int main(int argc, char** argv) {
-    Args args { 10, 32 };
+    Args args { 10, 32, false };
     parseOpt(argc, argv, args);
     if (!args.errmsg.empty()) {
         cerr << args.errmsg << endl;
         exit(1);
     }
 
-    QueryProcessor pr (args.topk, args.snippetSize);
+    QueryProcessor pr (args.topk, args.snippetSize, args.debug);
     string userInput;
     set<string> endcmd { "EXIT", "QUIT" };
     while (true) {
@@ -83,7 +89,6 @@ int main(int argc, char** argv) {
         // find & merge candidates in each subgroup
         Candidates candidates;
         for (auto& g : groups) {
-            for(auto& str : g) cout << str << " "; cout << endl;
             pr.findCandidates(g, candidates);
         }
 
@@ -101,6 +106,7 @@ int main(int argc, char** argv) {
             cout << endl;
         }
 
+        cout << "total: " << candidates.size() << endl;
         result.clear();
     }
 }

@@ -145,7 +145,10 @@ int DataCompress::numExisted(unsigned target, string& vbytes, std::vector<Skipli
 
     // find number in the block
     vector<unsigned> nums;
-    fromVarBytes(vbytes.substr(numSkipped, size), nums, true, first);
+    if (size)
+        fromVarBytes(vbytes.substr(sizeSkipped, size), nums, true, first);
+    else
+        fromVarBytes(vbytes.substr(sizeSkipped), nums, true, first);
     auto it = lower_bound(nums.begin(), nums.end(), target);
     if (it == nums.end() || *it != target)
         return -1;
