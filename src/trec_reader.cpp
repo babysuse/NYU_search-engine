@@ -91,7 +91,7 @@ void TRECReader::readMeta(std::string fname) {
 }
 
 void TRECReader::readMeta(string fname, std::vector<DocMeta>& meta) {
-    static const size_t SIZE = 65535;
+    static const size_t SIZE = 65536;
     static char readbuf[SIZE];
     meta.clear();
 
@@ -103,7 +103,7 @@ void TRECReader::readMeta(string fname, std::vector<DocMeta>& meta) {
         trecmeta.getline(readbuf, SIZE);
         if (strlen(readbuf)) {
             int docid;
-            char docno[16], url[256];
+            char docno[16], url[1024];
             size_t offset, size;
             std::sscanf(readbuf, "%d|%[^|]|%[^|]|%ld|%ld", &docid, docno, url, &offset, &size);
             auto& h = meta.emplace_back(string(docno), string(url), offset, size);

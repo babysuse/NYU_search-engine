@@ -33,8 +33,11 @@ void IndexReader::readMeta(string fname, InvListMeta& invlist, bool& compress) {
 
 // helper of IndexReader::readMeta()
 void IndexReader::extractData(string& metadata, InvListMeta& invlist) {
+    if (!isalpha(metadata[0]))
+        return;
+
     string lexicon = metadata.substr(0, metadata.find(" "));
-    char metalist[1024];
+    static char metalist[65536];
     sscanf(metadata.substr(lexicon.size() + 1).c_str(), "%u %u %lu %lu %lu %lu %lu %s",
             &invlist[lexicon].startdoc,
             &invlist[lexicon].enddoc,
