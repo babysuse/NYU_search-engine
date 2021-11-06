@@ -24,7 +24,7 @@ QueryProcessor::QueryProcessor(unsigned topK, unsigned maxSnippet):
         trec("dataset/msmarco-docs.trec.sub") {
     // read metadata of invlist (skiplists)
     bool compress;
-    readMeta("index_test/meta.out", invlistmeta, compress);
+    readMeta(metafile, invlistmeta, compress);
 
     // read metadata of documents
     trec.readMeta("index_test/DOCMETA", docmeta);
