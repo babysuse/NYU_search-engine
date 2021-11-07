@@ -35,8 +35,8 @@ class QueryProcessor {
         constexpr static const Compare comp = [](SearchRecord r1, SearchRecord r2) { return r1.score < r2.score; };
 
         QueryProcessor(unsigned topK, unsigned maxSnippet, bool debug);
-        void printTitle(unsigned doc);
-        void printUrl(unsigned doc);
+        std::string getTitle(unsigned doc);
+        std::string getUrl(unsigned doc);
         void getDocs(const std::string& term, std::vector<unsigned>& doclist);
         void getDocs(const std::string& term, std::string& doclist);
         void getFreqs(const std::string& term, std::vector<unsigned>&);

@@ -80,7 +80,7 @@ int main(int argc, char** argv) {
         exit(1);
     }
 
-    QueryProcessor pr (args.topk, args.snippetSize, args.debug);
+    QueryProcessor pr (args.topk * 2, args.snippetSize, args.debug);
     string userInput;
     set<string> endcmd { "EXIT", "QUIT" };
     while (true) {
@@ -104,14 +104,19 @@ int main(int argc, char** argv) {
 
         // output result
         cout << "searching result:" << endl;
-        for (auto r = result.begin(); r != result.end(); ++r) {
-            pr.printTitle(r->doc);
-            cout << pr.generateSnippet(r->doc, candidates[r->doc]) << endl;
-            pr.printUrl(r->doc);
-            cout << "score: " << -(r->score) << endl;
+        int count = 0;
+        for (auto r = result.begin(); count < args.topk && r != result.end(); ++r) {
+            string snippet = pr.generateSnippet(r->doc, candidates[r->doc]);
+            if (snippet.empty()) continue;
+            ++count;
+            cout << r->doc << " (" << pr.getTitle(r->doc) << ")" << endl;
+            cout << "Url: " << pr.getUrl(r->doc) << endl;
+            cout << "Score: " << -(r->score) << endl;
+            if (args.snippetSize) cout << "\t" << snippet << endl;
             cout << endl;
         }
 
+        cout << endl;
         result.clear();
     }
 }

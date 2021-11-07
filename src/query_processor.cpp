@@ -111,12 +111,12 @@ vector<string> QueryProcessor::_removeStopWords(const vector<string>& query, dou
 }
 
 
-void QueryProcessor::printTitle(unsigned doc) {
-    cout << "\t" << doc << " (" << docmeta[doc].docno << ")" << endl;
+string QueryProcessor::getTitle(unsigned doc) {
+    return docmeta[doc].docno;
 }
 
-void QueryProcessor::printUrl(unsigned doc) {
-    cout << "url: " << docmeta[doc].url << endl;
+string QueryProcessor::getUrl(unsigned doc) {
+    return docmeta[doc].url;
 }
 
 void QueryProcessor::getDocs(const string& term, vector<unsigned>& docIDs) {
@@ -250,6 +250,10 @@ string QueryProcessor::generateSnippet(const unsigned doc, QueryScores scores) {
         docCache.set(doc, doctext);
         delete docNode;
     }
+    bool exist = true;
+    for (auto s : scores) exist &= bool(doctext.find(s.first) != string::npos);
+    if (!exist)
+        return "";
 
     // shift the scores to guarantee positive values
     double minScore = std::numeric_limits<double>::infinity();
@@ -294,12 +298,15 @@ string QueryProcessor::generateSnippet(const unsigned doc, QueryScores scores) {
         }
     }
 
-    if (maxSnippet && wcount > 0)
-        expandSnippet(doctext, snippetBegin, snippetEnd);
+    expandSnippet(doctext, snippetBegin, snippetEnd);
+    size_t summarySize = std::distance(doctext.begin(), std::find_if_not(doctext.begin() + 100, doctext.end(), isalpha));
+    string summary = doctext.substr(0, summarySize);
     string snippet = string(snippetBegin, snippetEnd);
+    while (snippet[0] == ' ') snippet.erase(0, 1);
+    snippet = summary + " ... " + snippet + " ...";
     replace(snippet.begin(), snippet.end(), '\n', ' ');
     replace(snippet.begin(), snippet.end(), '\t', ' ');
-    return (maxSnippet ? snippet : "") + " ...";
+    return snippet;
 }
 
 void QueryProcessor::expandSnippet(const std::string& doctext, std::string::iterator& snippetBegin, std::string::iterator& snippetEnd) {
